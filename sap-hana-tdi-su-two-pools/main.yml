@@ -1,0 +1,36 @@
+---
+##############################################################################
+##  main.yml to create & configure VSP storage for SAP HANA TDI Scale-up Sever
+##############################################################################
+
+- name: Configure VSP Storage for SAP HANA TDI Scale-up Server with Two Storage Pool
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Check vsp_storage variable
+      ansible.builtin.fail:
+        msg: "Error: vsp_storage variable is not defined or has an invalid value. It must be 'f350' or 'e1090' or any e/f/g series with -e option like: -e vsp_storage=f350"
+      when: vsp_storage is not defined or vsp_storage not in [ '5100', '5500', '5100h', '5500h', '5200', '5600', '5200h', '5600h', '5100', '5500', '5100h', '5500h', '5200', '5600', '5200h', '5600h', 'e590', 'e790', 'e990', 'e1090', 'f350', 'f370', 'f700', 'f900' ]
+
+    - name: Set vsp_storage variable (if undefined)
+      ansible.builtin.set_fact:
+        vsp_storage: "{{ vsp_storage | default(omit) }}"
+
+- name: Configure Storage Ports
+  import_playbook: 1_storage_port_create.yml
+
+- name: Create & configure hostgroups for SAP HANA TDI Servers and then add WWNs of connected servers
+  import_playbook: 2_hostgroup_create.yml
+
+- name: Set Parity Group ID
+  import_playbook: 3_paritygroup_get_pg_id.yml
+
+- name: Create Parity Group with required RAID Type
+  import_playbook: 4_paritygroup_create.yml
+
+- name: Create Single Storage Pool with Pool Volumes for Scale-up SAP HANA TDI
+  import_playbook: 5_storagepool_create.yml
+
+- name: Create Vitual Volumes in Storage Pool and map those LUNs to SAP HANA TDI Hostgroup
+  import_playbook: 6_vvol_creation_in_pool.yml

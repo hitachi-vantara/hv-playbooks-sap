@@ -1,0 +1,114 @@
+###################################################################
+# Example : VVOL LDEV  Creation in DP Pool Playbook
+####################################################################
+- name: Logical Device Module
+  hosts: localhost
+  gather_facts: false
+  collections:
+    - hitachivantara.vspone_block.vsp
+
+  vars_files:
+    - ../../ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_variables_create.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+########################################################################
+# Task 7 : Create ldev (VVOL) for OS, Shared, Log and Data using pool id
+########################################################################
+    - name: Create vvol ldev for OS, SH, 4xLOG & 4xDATA using pool id
+      hv_ldev:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+          serial: "{{ storage_serial }}"
+        state: "{{ state_present }}"
+        spec:
+          pool_id: "{{ dp_pool_id_1 }}"
+          size: "{{ item.size }}"
+          name: "{{ item.name }}"
+      loop: "{{ os_vvols + shared_vvols + log_vvols + data_vvols }}"
+      loop_control:
+        loop_var: item
+        index_var: item_index
+
+      vars:
+        # OS VVOL
+        os_vvols:
+          - { size: "{{ os_vvol_size }}", name: "{{ os_vvol_name }}" }
+
+        # Shared VVOL
+        shared_vvols:
+          - { size: "{{ shared_vvol_size }}", name: "{{ shared_vvol_name }}" }
+
+        # Define a range for 4 Log VVOLs
+        log_vvols: |
+          [
+            {% for i in range(1, 5) %}
+            { "size": "{{ log_vvol_size }}", "name": "{{ log_vvol_name }}_{{ i }}" }
+            {% if not loop.last %},{% endif %}
+            {% endfor %}
+          ]
+
+        # Define a range for 4 Data VVOLs
+        data_vvols: |
+          [
+            {% for i in range(1, 5) %}
+            { "size": "{{ data_vvol_size }}", "name": "{{ data_vvol_name }}_{{ i }}" }
+            {% if not loop.last %},{% endif %}
+            {% endfor %}
+          ]
+
+      register: vvol_create_result
+
+
+        #- debug:
+        #var: vvol_create_result
+
+
+####################################################################
+# Task 8 : Present ldev to host group with direct connection
+####################################################################
+
+
+        #- name: Collect all ldev_id values
+        #ansible.builtin.set_fact:
+        #ldev_ids: "{{ vvol_create_result.results | selectattr('data.ldev_id', 'defined') | map(attribute='data.ldev_id') | list }}"
+        #ldev_ids: "{{ vvol_create_result.results | selectattr('volume.logical_unit_id_hex_format', 'defined') | map(attribute='volume.logical_unit_id_hex_format') | map('trim') | map('regex_replace', '^0x', '') | map('int', 16) | list }}"
+
+        #- name: Show collected ldev_ids
+        #ansible.builtin.debug:
+        #var: ldev_ids
+
+    - name: Collect ldev_ids and logical_unit_id_hex_format
+      ansible.builtin.set_fact:
+        ldevs_info: "{{ vvol_create_result.results | selectattr('volume.logical_unit_id_hex_format', 'defined') | selectattr('volume.ldev_id', 'defined') | map(attribute='volume') | list }}"
+
+    - name: Sort ldev_ids based on logical_unit_id_hex_format
+      ansible.builtin.set_fact:
+        sorted_ldev_ids: "{{ ldevs_info | sort(attribute='logical_unit_id_hex_format') | map(attribute='ldev_id') | list }}"
+
+    - name: Show sorted ldev_ids
+      ansible.builtin.debug:
+        var: sorted_ldev_ids
+
+    - name: Present ldev to host group with direct connection
+      hitachivantara.vspone_block.vsp.hv_hg:
+        connection_info: "{{ connection_info }}"
+        state: "{{ state_present }}"
+        spec:
+          state: "{{ substate_present_ldev }}"
+          name: "{{ item.hostgroup_port[2:5] | replace('-', '') }}-G00"
+          port: "{{ item.hostgroup_port }}"
+          ldevs: "{{ sorted_ldev_ids }}"
+      loop: "{{ hostgroups }}"
+      register: result_present_ldev
+
+        #- name: Debug result_present_ldev
+        #ansible.builtin.debug:
+        #var: result_present_ldev

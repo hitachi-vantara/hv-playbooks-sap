@@ -1,0 +1,40 @@
+---
+####################################################################
+# Example :  Storage Port  Playbook
+####################################################################
+- name: Storage Port Module
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ../../ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_variables_create.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ####################################################################
+    # Task 1 : Change storage port security settings using port id
+    ####################################################################
+    - name: Change storage port security settings of port ids {{storage_port_port_1}}, {{ storage_port_port_2 }}
+      hitachivantara.vspone_block.vsp.hv_storage_port:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+          serial: "{{ storage_serial }}"
+        spec:
+          port: "{{ item }}"
+          enable_port_security: "{{ storage_port_enable_port_security_1 }}"
+      loop:
+        - "{{ storage_port_port_1 }}"
+        - "{{ storage_port_port_2 }}"
+      register: result
+
+        #- name: Debug the result variable
+        #ansible.builtin.debug:
+        #var: result
+
