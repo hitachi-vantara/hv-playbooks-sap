@@ -15,10 +15,11 @@ substate_attach_ldev : attach_ldev
 #
 ####################################################################
 # Task 1 : Change storage port security settings using port id
+# Note: Update the correct Storage Port where your host is connected.
 ####################################################################
-storage_port_port_1 : CL3-E
-storage_port_port_2 : CL4-E
-storage_port_enable_port_security_1 : false
+storage_port_port_1 : CL7-E
+storage_port_port_2 : CL8-E
+portspeed : "16G"
 ####################################################################
 #
 ####################################################################
@@ -27,20 +28,21 @@ storage_port_enable_port_security_1 : false
 hostgroup_host_mode : "LINUX"
 hostgroup_host_mode_options : "[ 2, 94, 109 ]"
 hostgroups:
-  - hostgroup_port : "{{ storage_port_port_1 }}"  ##value will take from Task1
-    hostgroup_wwns : ["9876543210ABCDE0"]
+  - hostgroup_port : "{{ storage_port_port_1i }}"
+    hostgroup_wwns : ["100000109B953FA5"]     ###Update your host WWPN
 
-  - hostgroup_port : "{{ storage_port_port_2 }}"  ##value will take from Task1
-    hostgroup_wwns : ["9876543210ABCDE1"]
+  - hostgroup_port : "{{ storage_port_port_2 }}"
+    hostgroup_wwns : ["100000109B954199"]     ###Update your host WWPN
 #####################################################################
 #
 #####################################################################
 # Task 4 : Create parity group on SSD drives
+# Note: Modify only if there is requirement.
 #####################################################################
 drive_type_1 : "SSD(MLC)"
 drive_capacity_1 : "1900 GB"
-free_disk_drives : 4
-paritygroup_raid_type_1 : "2D+2D"
+free_disk_drives : 8
+paritygroup_raid_type_1 : "6D+2P"
 paritygroup_is_encryption_enabled_1 : false
 paritygroup_is_copy_back_mode_enabled_1 : false
 paritygroup_is_accelerated_compression_enabled_1 : false
@@ -50,22 +52,18 @@ paritygroup_is_accelerated_compression_enabled_1 : false
 # Task 5 & 6 : Create Storage Pool with 8 pool Volumes (PVOLs)
 ####################################################################
 storagepool_name_1 : "ANSIBLE_SU_ICX_POOL"
-storagepool_size : "10GB"
-  #storagepool_pg_id : "{{ paritygroup_facts_parity_group_id_1 }}"    ##pg_id will take from task 4
+storagepool_size : "400GB"    ##per PVOL size
 pvol_name_1 : "ANSIBLE_SU_ICX_PVOL"
 ####################################################################
-#
+# Task 7: Create VVOL ldevs (OS, SH, 4xLog & 4xData) in DP Pool
 ####################################################################
-# Task 7: Create VVOL ldevs (OS, SH, Log & Data) in DP Pool
-####################################################################
-#dp_pool_id_1 : 2
-os_vvol_size : 1GB
+os_vvol_size : 100GB
 os_vvol_name : ANS_SU_ICX_OS_VVOL
-shared_vvol_size : 1GB
+shared_vvol_size : 1024GB
 shared_vvol_name : ANS_SU_ICX_SH_VVOL
-log_vvol_size : 1GB
+log_vvol_size : 128GB         ####per VVOL size
 log_vvol_name : ANS_SU_ICX_LOG_VVOL
-data_vvol_size : 1GB
+data_vvol_size : 256GB        ####per VVOL size
 data_vvol_name : ANS_SU_ICX_DATA_VVOL
 ####################################################################
 #

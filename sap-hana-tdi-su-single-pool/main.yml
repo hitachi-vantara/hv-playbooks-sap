@@ -9,8 +9,8 @@
   tasks:
     - name: Check vsp_storage variable
       ansible.builtin.fail:
-        msg: "Error: vsp_storage variable is not defined or has an invalid value. It must be any VSP One model like 'b20/b24/b26/b28' and use with -e option like: -e vsp_storage=b20"
-      when: vsp_storage is not defined or vsp_storage not in ['b20', 'b24', 'b26', 'b28']
+        msg: "Error: vsp_storage variable is not defined or has an invalid value. It must be any VSP One model like 'b24/b26/b28' and use with -e option like: -e vsp_storage=b24"
+      when: vsp_storage is not defined or vsp_storage not in ['b24', 'b26', 'b28']
 
     - name: Set vsp_storage variable (if undefined)
       ansible.builtin.set_fact:

@@ -53,7 +53,7 @@
 
     - name: select free drives
       ansible.builtin.set_fact:
-        free_disk_drives: "{{ free_drives[0:4] }}"
+        free_disk_drives: "{{ free_drives[0:8] }}"
 
     - name: Create new Parity Group on ID "{{ next_parity_group_id }}" with raid type "{{ paritygroup_raid_type_1 }}"
       hitachivantara.vspone_block.vsp.hv_paritygroup:

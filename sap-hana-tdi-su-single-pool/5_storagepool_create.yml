@@ -22,7 +22,7 @@
 ###################################################################
 ### Task 5 : Create Storage Pool with Pool Volumes
 ###################################################################
-    - name: Create Storage Pool with Pool Volumes
+    - name: Create Storage Pool with 8 Pool Volumes
       hv_storagepool:
         connection_info: "{{ connection_info }}"
         storage_system_info:
@@ -38,9 +38,9 @@
       register: storage_pool_result
 
 
-    - name: Debug the result variable
-      ansible.builtin.debug:
-        var: storage_pool_result
+        #- name: Debug the result variable
+        #ansible.builtin.debug:
+        #var: storage_pool_result
 
 
     - name: Set pool_id value
@@ -49,7 +49,7 @@
 
     - name: Created Storage pool ID
       ansible.builtin.debug:
-        msg: "Created Storage Pool ID is {{ dp_pool_id_1 }}"
+        msg: "Created Storage Pool ID: {{ dp_pool_id_1 }}, Pool Name: {{ storage_pool_result.data.name }} and Size: {{ storage_pool_result.data.total_capacity_in_unit }}"
 
     - name: Created Storage Pool Volumes ID
       ansible.builtin.debug:

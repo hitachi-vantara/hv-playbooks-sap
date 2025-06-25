@@ -32,7 +32,7 @@
 
     - name: Debug extracted parity group IDs
       ansible.builtin.debug:
-        msg: "Existing used parity group IDs: {{ existing_parity_groups.parity_groups | default([]) | map(attribute='parity_group_id') | list }}"
+        msg: "Existing used parity group IDs: {{ existing_parity_groups.ansible_facts.parity_groups | default([]) | map(attribute='parity_group_id') | list }}"
 
 ########################################################################
 # Next available parity group id which will use storage pool
@@ -42,7 +42,7 @@
         next_parity_group_id: "{{ next_pg_id }}"
         next_parity_group_id_2: "{{ next_pg_id_2 }}"
       vars:
-        existing_ids: "{{ existing_parity_groups.parity_groups | default([]) | map(attribute='parity_group_id') | list }}"
+        existing_ids: "{{ existing_parity_groups.ansible_facts.parity_groups | default([]) | map(attribute='parity_group_id') | list }}"
         last_id: "{{ existing_ids | last | default('0-0') }}"
         next_pg_id: >-
           {%- set parts = last_id.split('-') | map('int') -%}
