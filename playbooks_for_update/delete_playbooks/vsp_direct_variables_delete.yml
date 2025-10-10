@@ -1,0 +1,46 @@
+##Variables for Delete##
+#
+#########################
+## Pool Variable
+########################
+target_pool_id : 0
+
+##########################
+## Storage Pool (VSP E/F/G Series)
+##########################
+storage_pool_name : "ANS_SU_ICX_LOG_POOL"
+starting_pool_name : "ANS_SU_ICX"
+
+#########################
+## Parity Group ID
+#########################
+parity_group_id :
+  - "2-3"
+  - "2-4"
+
+###########################
+## LDEVs Variables
+###########################
+starting_ldev_name : "ANS_SU_ICX"
+
+############################
+## Storage Ports
+###########################
+storage_port_port_1 : CL3-A
+storage_port_port_2 : CL4-A
+portspeed : "16G"
+
+
+############################
+# Resize LDEVs
+############################
+ldev_list : [2, 3, 4, 5]
+new_size : "10GB"
+
+
+############################
+# Delete LDEVs
+############################
+delete_ldev_list : [0]
+  #delete_ldev_list : [6, 7, 8, 9]
+
