@@ -69,12 +69,6 @@ These playbooks are safe to run and provide detailed reporting on the storage sy
 
 ---
 
-## Prerequisites
-*   Ansible 2.9+
-*   `hitachivantara.vspone_block` Ansible Collection
-*   Network connectivity to Hitachi VSP Storage (REST API / VSP One API)
-*   Valid credentials configured in `ansible_vault_storage_var.yml`
-
 ## Usage
 1.  Update the relevant `variables_*.yml` file with your specific environment details (Pool IDs, Port names, etc.).
 2.  Run the desired playbook using `ansible-playbook`:
