@@ -1,0 +1,56 @@
+---
+####################################################################
+# Example :  Storage Port  Playbook
+####################################################################
+- name: Storage Port Module
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_global_variables.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ####################################################################
+    # Task: Change storage port security settings using port id
+    ####################################################################
+    - name: Change Storage Port(Port 1) Security, Connection, Speed and Fabric mode settings for all SAP HANA Nodes
+      hitachivantara.vspone_block.vsp.hv_storage_port:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+          serial: "{{ storage_serial }}"
+        spec:
+          port: "{{ item.port1 }}"
+          enable_port_security: "{{ port_security_status }}"
+          fabric_mode: "{{ fabric_connection }}"
+          port_connection: "PtoP"
+          port_speed: "{{ portspeed }}"
+      loop: "{{ sap_hana_nodes }}"
+      loop_control:
+        label: "{{ item.hostname }} on port {{ item.port1 }}"
+      register: result_port1
+      ignore_errors: true
+
+    - name: Change Storage Port(Port 2) Security, Connection, Speed and Fabric mode settings for all SAP HANA Nodes
+      hitachivantara.vspone_block.vsp.hv_storage_port:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+          serial: "{{ storage_serial }}"
+        spec:
+          port: "{{ item.port2 }}"
+          enable_port_security: "{{ port_security_status }}"
+          fabric_mode: "{{ fabric_connection }}"
+          port_connection: "PtoP"
+          port_speed: "{{ portspeed }}"
+      loop: "{{ sap_hana_nodes }}"
+      loop_control:
+        label: "{{ item.hostname }} on port {{ item.port2 }}"
+      register: result_port2
+      ignore_errors: true

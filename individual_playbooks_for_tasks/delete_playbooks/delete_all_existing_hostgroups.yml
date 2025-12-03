@@ -1,0 +1,73 @@
+---
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Deletes ALL custom hostgroups from the VSP Storage system
+# after unpresenting all associated LDEVs. Skips default system
+# hostgroups (ending in -G00).
+####################################################################
+
+- name: Delete ALL existing hostgroups
+  hosts: localhost
+  gather_facts: false
+  collections:
+    - hitachivantara.vspone_block.vsp
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_variables_delete.yml
+
+  vars:
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    - name: Get all existing hostgroups from storage "{{ storage_address }}"
+      hitachivantara.vspone_block.vsp.hv_hg_facts:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+          serial: "{{ storage_serial }}"
+      register: all_hostgroups
+
+    - name: Unpresent ldevs from all hostgroups from storage "{{ storage_address }}"
+      hitachivantara.vspone_block.vsp.hv_hg:
+        connection_info: "{{ connection_info }}"
+        state: "present"
+        spec:
+          name: "{{ item.host_group_name }}"
+          port: "{{ item.port_id }}"
+          should_delete_all_ldevs: true
+          should_release_host_reserve: true          
+          state: "unpresent_ldev"
+      loop: "{{ all_hostgroups.ansible_facts.hostGroups }}"
+      loop_control:
+        label: "{{ item.host_group_name }} on {{ item.port_id }}"            
+      register: result
+
+
+    - name: Delete all custom hostgroups from storage "{{ storage_address }}"
+      hitachivantara.vspone_block.vsp.hv_hg:
+        connection_info: "{{ connection_info }}"
+        state: "absent"
+        spec:
+          name: "{{ item.host_group_name }}"
+          port: "{{ item.port_id }}"
+          should_delete_all_ldevs: true
+          should_release_host_reserve: true
+          state: unpresent_ldev
+      loop: "{{ all_hostgroups.ansible_facts.hostGroups }}"
+      loop_control:
+        label: "{{ item.host_group_name }} on {{ item.port_id }}"
+      when: 
+        - all_hostgroups.ansible_facts.hostGroups is defined
+        - not item.host_group_name.endswith('-G00')  # Skip default system hostgroups
+      ignore_errors: true
+
+    - name: Done
+      debug:
+        msg: "All custom hostgroups has been deleted"

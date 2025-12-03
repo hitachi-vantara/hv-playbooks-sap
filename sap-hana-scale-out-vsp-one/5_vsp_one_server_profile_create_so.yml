@@ -1,0 +1,74 @@
+---
+####################################################################
+# Example : VSP One Server Playbook
+####################################################################
+- name: VSP One Server Module
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_global_variables.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ####################################################################
+    # Task Name : Register server with multiple HBAs and paths configuration
+    ####################################################################
+    - name: Register server profile with multiple HBAs and paths configuration
+      hitachivantara.vspone_block.vsp.hv_vsp_one_server:
+        state: present
+        connection_info: "{{ connection_info }}"
+        spec:
+          nick_name: "{{ item.hostname }}"
+          protocol: "FC"
+          os_type: "Linux"
+          os_type_options: [2, 94, 109]
+          keep_lun_config: true
+          hbas:
+            - hba_wwn: "{{ item.wwn1 }}"
+            - hba_wwn: "{{ item.wwn2 }}"
+          paths:
+            - port_ids: ["{{ item.port1 }}"]
+              hba_wwn: "{{ item.wwn1 }}"
+            - port_ids: ["{{ item.port2 }}"]
+              hba_wwn: "{{ item.wwn2 }}"
+      loop: "{{ sap_hana_nodes }}"
+      loop_control:
+        label: "{{ item.hostname }}"
+      register: profile_result
+
+        #    - name: Set Server_id value for path mapping
+        #ansible.builtin.set_fact:
+        #server_profile_id: "{{ profile_result.results | map(attribute='server.id') | list }}"
+
+        # - name: Debug the result variable
+        #ansible.builtin.debug:
+        #var: profile_result
+
+        #- name: Debug the result variable
+        #ansible.builtin.debug:
+        # msg: New server profile is "{{ server_profile_id }}"
+
+    - name: Set per-node server ID map
+      set_fact:
+        server_id_by_node: >-
+          {{
+            server_id_by_node | default({}) | combine({ item.item.hostname: item.server.id })
+          }}
+      loop: "{{ profile_result.results }}"
+      loop_control:
+        label: "{{ item.item.hostname }}: Server ID {{ item.server.id }}"
+      when: item.server is defined and not item.failed
+
+
+    - name: Debug the result variable
+      ansible.builtin.debug:
+        msg: New server profile are "{{ server_id_by_node }}"
+

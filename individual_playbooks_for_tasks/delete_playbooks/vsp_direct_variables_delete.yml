@@ -1,0 +1,51 @@
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Central variable file containing inputs for all delete
+# operations, including pool names, LDEV lists, and naming patterns.
+####################################################################
+
+##Variables for Delete##
+#
+#########################
+## Pool Variable
+########################
+target_pool_id : 0
+
+##########################
+## Storage Pool (VSP E/F/G Series)
+##########################
+#storage_pool_name : "ANS_SU_POOL"
+starting_pool_name : "ANS_SU"
+
+#########################
+## Parity Group ID
+#########################
+parity_group_id :
+  - "1-3"
+    #  - "1-4"
+
+###########################
+## LDEVs Variables
+###########################
+starting_ldev_name : "node"
+
+############################
+## Storage Ports & Hostgroups
+###########################
+storage_port_port_1 : CL7-E
+storage_port_port_2 : CL8-E
+portspeed : "16G"
+hostgroups:
+  - hostgroup_port : "{{ storage_port_port_1 }}"
+  - hostgroup_port : "{{ storage_port_port_2 }}"
+
+############################
+# Delete LDEVs
+############################
+#delete_ldev_list : [0]
+delete_ldev_list : [24,25,26,27,28,29,30,31,32,33]
+

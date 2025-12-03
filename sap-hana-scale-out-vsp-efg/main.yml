@@ -1,0 +1,54 @@
+---
+###################################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+# Description: Automated storage provisioning and management for SAP HANA Scale-Out 
+# Servers using Two HDP Storage pool method for VSP G/E/F Series Block Storage
+# Tested on: Hitachi Virtual Storage Platform One Block Storage Modules for 
+# Red Hat Ansible 4.4.2
+####################################################################################
+
+##########################################################################################
+##  main.yml to create & configure VSP E/F/G Series Block storage for SAP HANA TDI Scale-out Severs
+##########################################################################################
+- name: Configure VSP E/F/G Series Block Storage for SAP HANA Scale-out environment using multiple physical Servers
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Starting SAP HANA Storage Configuration Pipeline
+      ansible.builtin.debug:
+        msg:
+           - "========================================================================="
+           - "  VSP E/F/G Series Block Configuration for SAP HANA Scale-out Environment"
+           - "========================================================================="
+           - "Prerequisites Check:"
+           - "  ✓ Verify nodes_info.csv contains: hostnames, WWNs, storage ports"
+           - "  ✓ Confirm vault file has: storage address and credentials"
+           - "Starting automated provisioning workflow..."
+
+
+- name: Check and validate VSP E/F/G Series Block Storage System, if Storage not supported then pipe-line will exit
+  import_playbook: 0_storagesystem_validate.yml
+
+- name: Load SAP HANA Nodes details from CSV
+  import_playbook: 1_load_nodes.yml
+
+- name: Configure VSP Storage Ports for servers in CSV file
+  import_playbook: 2_storage_port_create.yml
+
+- name: Create hostgroups and add WWNs of HANA nodes in CSV file
+  import_playbook: 3_hostgroup_add-wwn_create.yml
+
+- name: Check existing Parity Group and set new parity group id for new Pools
+  import_playbook: 4_paritygroup_get_pg_id.yml
+
+- name: Create Parity Groups for Storage Pools
+  import_playbook: 5_paritygroup_create.yml
+
+- name: Create Two Storage Pools for Data and Log Volumes
+  import_playbook: 6_storagepool_create.yml
+
+- name: Create all required VVols in Storage Pools for SAP HANA Servers and present to hostgroups in specific order
+  import_playbook: 7_vvol_creation_mapping.yml

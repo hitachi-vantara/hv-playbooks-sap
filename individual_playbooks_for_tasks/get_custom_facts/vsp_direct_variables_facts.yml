@@ -1,0 +1,46 @@
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Central variable file for Fact Gathering playbooks,
+# defining search patterns, pool IDs, and port configurations.
+####################################################################
+
+##Variables for Custom Facts##
+#
+#########################
+## Pool Variable
+########################
+target_pool_id : 2
+pool_name_contain : "ANS_SU_ICX"
+ddp_pool_name: "Pool9D"
+
+##########################
+## Storage Pool (VSP E/F/G Series)
+##########################
+#storage_pool_name : "ANS_SU_ICX_LOG_POOL"
+#starting_pool_name : "ANS_SU_ICX"
+
+#########################
+## Parity Group ID
+#########################
+parity_group_id : "1-3"
+  #  - "1-3"
+  #  - "1-4"
+
+###########################
+## LDEVs Variables
+###########################
+ldev_name_contain : "VVOL"    ##enter the search name keyword of your PVOL/VVOL
+starting_ldev_name : "ANS_SU"
+
+############################
+## Storage Ports
+###########################
+storage_port_port_1 : CL7-E
+storage_port_port_2 : CL8-E
+portspeed : "16G"
+
+

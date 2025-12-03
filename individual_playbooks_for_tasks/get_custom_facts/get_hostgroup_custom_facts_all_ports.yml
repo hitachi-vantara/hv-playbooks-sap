@@ -1,0 +1,44 @@
+---
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Retrieves information for ALL hostgroups on the VSP Storage 
+# system, displaying a formatted summary of Hostgroup Name, Port, WWNs,
+# and mapped LUNs.
+####################################################################
+
+####################################################################
+# All Hostgroup Summary Playbook
+####################################################################
+- name: Hostgroup Summary
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+
+  vars:
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    - name: Get all hostgroups
+      hitachivantara.vspone_block.vsp.hv_hg_facts:
+        connection_info: "{{ connection_info }}"
+        spec:
+          query: ['wwns', 'ldevs']
+      register: result
+
+    - name: Display hostgroup info
+      ansible.builtin.debug:
+        msg: |
+          Hostgroup: {{ item.host_group_name }}
+          Port: {{ item.port_id }}
+          WWNs: {{ item.wwns | map(attribute='id') | list | join(', ') if item.wwns else 'None' }}
+          LUNs: {{ item.lun_paths | map(attribute='lun') | list | join(', ') if item.lun_paths else 'None' }}
+          ---
+      loop: "{{ result.ansible_facts.hostGroups }}"

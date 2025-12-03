@@ -1,0 +1,185 @@
+---
+
+- name: Create and Map SAP HANA Volumes for Each Nodes in CSV File
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_global_variables.yml
+
+  vars:
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    #################################################################
+    # Create the volumes *in required order* for each node
+    #################################################################
+    - name: Create OS volumes
+      hitachivantara.vspone_block.vsp.hv_vsp_one_volume:
+        state: present
+        connection_info: "{{ connection_info }}"
+        spec:
+          pool_id: "{{ ddp_pool_id }}"
+          volume_name:
+            base_name: "{{ item.hostname }}_os"
+          number_of_volumes: 1
+          capacity: "{{ os_vol_size }}"
+          is_data_reduction_share_enabled: true
+          capacity_saving: "compression"
+          compression_acceleration: true
+      loop: "{{ sap_hana_nodes }}"
+      loop_control:
+        label: "{{ item.hostname }}"
+      register: os_vol_result
+
+    - name: Create Shared volumes
+      hitachivantara.vspone_block.vsp.hv_vsp_one_volume:
+        state: present
+        connection_info: "{{ connection_info }}"
+        spec:
+          pool_id: "{{ ddp_pool_id }}"
+          volume_name:
+            base_name: "{{ item.hostname }}_shared"
+          number_of_volumes: 1
+          capacity: "{{ shared_vol_size }}"
+          is_data_reduction_share_enabled: true
+          capacity_saving: "compression"
+          compression_acceleration: true
+      loop: "{{ sap_hana_nodes }}"
+      loop_control:
+        label: "{{ item.hostname }}"
+      register: shared_vol_result
+
+    - name: Create LOG volumes
+      hitachivantara.vspone_block.vsp.hv_vsp_one_volume:
+        state: present
+        connection_info: "{{ connection_info }}"
+        spec:
+          pool_id: "{{ ddp_pool_id }}"
+          volume_name:
+            base_name: "{{ item.hostname }}_log_"
+            start_number: 1
+            number_of_digits: 2
+          number_of_volumes: 4
+          capacity: "{{ log_vol_size }}"
+          is_data_reduction_share_enabled: true
+          capacity_saving: "compression"
+          compression_acceleration: true
+      loop: "{{ sap_hana_nodes }}"
+      loop_control:
+        label: "{{ item.hostname }}"
+      register: log_vol_result
+
+    - name: Create DATA volumes
+      hitachivantara.vspone_block.vsp.hv_vsp_one_volume:
+        state: present
+        connection_info: "{{ connection_info }}"
+        spec:
+          pool_id: "{{ ddp_pool_id }}"
+          volume_name:
+            base_name: "{{ item.hostname }}_data_"
+            start_number: 1
+            number_of_digits: 2
+          number_of_volumes: 4
+          capacity: "{{ data_vol_size }}"
+          is_data_reduction_share_enabled: true
+          capacity_saving: "compression"
+          compression_acceleration: true
+      loop: "{{ sap_hana_nodes }}"
+      loop_control:
+        label: "{{ item.hostname }}"
+      register: data_vol_result
+
+
+    ##############################################################################
+    # Extract volume IDs per node from the results
+    #############################################################################
+
+    - name: Extract OS volume IDs per node
+      set_fact:
+        os_ids_by_node: >-
+          {{ os_ids_by_node | default({}) | combine({ item.item.hostname: item.volume | map(attribute='id') | list }) }}
+      loop: "{{ os_vol_result.results }}"
+      loop_control:
+        label: "{{ item.item.hostname }}"
+        
+    - name: Extract Shared volume IDs per node
+      set_fact:
+        shared_ids_by_node: >-
+          {{ shared_ids_by_node | default({}) | combine({ item.item.hostname: item.volume | map(attribute='id') | list }) }}
+      loop: "{{ shared_vol_result.results }}"
+      loop_control:
+        label: "{{ item.item.hostname }}"
+
+    - name: Extract LOG volume IDs per node
+      set_fact:
+        log_ids_by_node: >-
+          {{ log_ids_by_node | default({}) | combine({ item.item.hostname: item.volume | map(attribute='id') | list }) }}
+      loop: "{{ log_vol_result.results }}"
+      loop_control:
+        label: "{{ item.item.hostname }}"
+        
+    - name: Extract DATA volume IDs per node
+      set_fact:
+        data_ids_by_node: >-
+          {{ data_ids_by_node | default({}) | combine({ item.item.hostname: item.volume | map(attribute='id') | list }) }}
+      loop: "{{ data_vol_result.results }}"
+      loop_control:
+        label: "{{ item.item.hostname }}"
+        
+    ##############################################################################
+    # After all creations, combine volume IDs per node in the proper order
+    ##############################################################################
+
+    - name: Combine all volume IDs per node maintaining order
+      set_fact:
+        volumes_by_node: >-
+          {{ volumes_by_node | default({}) | combine({ item: 
+            os_ids_by_node[item] + 
+            shared_ids_by_node[item] + 
+            log_ids_by_node[item] + 
+            data_ids_by_node[item] 
+          }) }}
+      loop: "{{ sap_hana_nodes | map(attribute='hostname') | list }}"
+      loop_control:
+        label: "{{ item }}"
+
+          # - name: Debug volumes_by_node
+          #debug:
+          #msg: "Node {{ item.key }}: {{ item.value }}"
+          # loop: "{{ volumes_by_node | dict2items }}"
+
+
+          #- name: Combine Volumes ID debug
+          #debug:
+          #msg: "all created volumes IDs are: {{ volumes_by_node }}"
+    
+    #################################################################
+    # Attach the ordered volumes to their node’s own server profile
+    #################################################################
+    - name: Attach all volumes in required order to their server profile
+      hitachivantara.vspone_block.vsp.hv_vsp_one_volume:
+        state: server_present
+        connection_info: "{{ connection_info }}"
+        spec:
+          volume_ids: "{{ volumes_by_node[item.hostname] }}"
+          server_ids: 
+            - "{{ server_id_by_node[item.hostname] }}"
+      loop: "{{ sap_hana_nodes }}"
+      loop_control:
+        label: "Attach {{ item.hostname }}"
+      register: attach_result
+
+        # - name: Debug attach result
+        #ansible.builtin.debug:
+        #var: attach_result
+
+    - name: Debug final mapping for each node
+      ansible.builtin.debug:
+        msg: >
+          Node {{ item.hostname }}: Volumes {{ volumes_by_node[item.hostname] | join(', ') }} mapped to Server {{ server_id_by_node[item.hostname] }}
+      loop: "{{ sap_hana_nodes }}"
+

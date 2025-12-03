@@ -1,0 +1,53 @@
+---
+############################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.1
+# Date: November 2025
+# Description: Automated storage provisioning and management for SAP HANA
+# Scale-Up Server using Single HDP Storage pool method for VSP G/E/F Series
+# Block Storage
+# Tested on: Hitachi Virtual Storage Platform One Block Storage Modules for 
+# Red Hat Ansible 4.4.2
+#############################################################################
+
+##############################################################################
+##  main.yml to create & configure VSP storage for SAP HANA TDI Scale-up Sever
+##############################################################################
+- name: Configure VSP E/F/G Series Block Storage for SAP HANA Scale-up environment using Single Storage Pools
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Starting SAP HANA Storage Configuration Pipeline
+      ansible.builtin.debug:
+        msg:
+           - "========================================================================="
+           - "  VSP E/F/G Series Block Configuration for SAP HANA Scale-up Environment"
+           - "========================================================================="
+           - "Prerequisites Check:"
+           - "  ✓ Verify variables file contains: WWNs, storage ports, HDP Pool/VVOls name & size"
+           - "  ✓ Confirm vault file has: storage address and credentials"
+           - "  ✓ Make sure minimum 8 free SSD Disk drives should available"
+           - "Starting automated provisioning workflow..."
+
+- name: Validate support VSP provided
+  import_playbook: 0_storagesystem_validate.yml
+
+- name: Configure Storage Ports
+  import_playbook: 1_storage_port_create.yml
+
+- name: Create & configure hostgroups for SAP HANA TDI Servers and then add WWNs of connected servers
+  import_playbook: 2_hostgroup_create.yml
+
+- name: Set Parity Group ID
+  import_playbook: 3_paritygroup_get_pg_id.yml
+
+- name: Create Parity Group with required RAID Type
+  import_playbook: 4_paritygroup_create.yml
+
+- name: Create Single Storage Pool with Pool Volumes for Scale-up SAP HANA TDI
+  import_playbook: 5_storagepool_create.yml
+
+- name: Create Vitual Volumes in Storage Pool and map those LUNs to SAP HANA TDI Hostgroup
+  import_playbook: 6_vvol_creation_in_pool.yml
+

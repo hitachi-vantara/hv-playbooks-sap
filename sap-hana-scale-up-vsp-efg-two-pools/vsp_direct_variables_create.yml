@@ -1,0 +1,79 @@
+####################################################################
+# Variables for states : Common for all playbooks
+####################################################################
+state_present : present
+state_sync : sync
+#
+####################################################################
+# Variables for substates, state feild inside spec
+####################################################################
+substate_present_ldev : present_ldev
+substate_set_host_mode_and_hmo : set_host_mode_and_hmo
+substate_add_wwn : add_wwn
+substate_attach_ldev : attach_ldev
+#
+####################################################################
+# Task 1 : Change storage port security settings using port id
+# Note: Update the correct Storage Port where your host is connected.
+####################################################################
+storage_port_port_1 : "CL7-E"
+storage_port_port_2 : "CL8-E"
+portspeed : "16G"
+####################################################################
+#
+####################################################################
+# Task 2 & 3: Create hostgroup and update hostgroup modes
+####################################################################
+hostgroup_host_mode : "LINUX"
+hostgroup_host_mode_options : [ 2, 94, 109 ]
+hostgroups:
+  - hostgroup_port : "{{ storage_port_port_1 }}"
+    hostgroup_wwns : 
+      - wwn: "100000109B953FA5"      ### Update your host WWPN
+
+  - hostgroup_port : "{{ storage_port_port_2 }}"
+    hostgroup_wwns : 
+      - wwn: "100000109B954199"      ### Update your host WWPN
+### NOTE: Make sure correct WWNs map to correct storage port ###
+#####################################################################
+#
+#####################################################################
+# Task 4 & 5: Create parity group on SSD drives
+#####################################################################
+drive_type_1 : "SSD"             ## Modify only if disk type is different
+drive_capacity_1 : "7600 GB"          ## Modify only disk size is different in VSP
+free_disk_drives : 8                ## Number of Disks required for Parity Group (RAID)  
+paritygroup_raid_type_1 : "2D+2D"
+paritygroup_is_encryption_enabled_1 : false
+paritygroup_is_copy_back_mode_enabled_1 : false
+paritygroup_is_accelerated_compression_enabled_1 : false
+####################################################################
+#
+####################################################################
+# Task 6 & 7 : Create Storage Pool with pool Volumes (4 x PVOLs)
+####################################################################
+storagepool_name_1 : "ANS_SU_DATA_POOL"
+storagepool_name_2 : "ANS_SU_LOG_POOL"
+storagepool_size : "50GB"                    ### Per PVOL size
+pvol_name_1 : "ANS_ICX_DATA_PVOL"
+pvol_name_2 : "ANS_ICX_LOG_PVOL"
+####################################################################
+#
+####################################################################
+# Task 8: Create VVOL ldevs (OD, SH, 4 x Log & 4 x Data) in DP Pool
+####################################################################
+os_vvol_size : 1GB
+os_vvol_name : ANS_SU_ICX_OS_VVOL
+shared_vvol_size : 2GB
+shared_vvol_name : ANS_SU_ICX_SH_VVOL
+log_vvol_size : 1GB                     ### Per VVOL Size
+log_vvol_name : ANS_SU_ICX_LOG_VVOL
+data_vvol_size : 2GB                    ### Per VVOL Size
+data_vvol_name : ANS_SU_ICX_DATA_VVOL
+####################################################################
+#
+####################################################################
+# Task 9 : Present ldev to host group with direct connection
+####################################################################
+## Same variables will assign from Task 1&2
+

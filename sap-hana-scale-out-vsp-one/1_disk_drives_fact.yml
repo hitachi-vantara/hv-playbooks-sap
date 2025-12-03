@@ -1,0 +1,85 @@
+---
+####################################################################
+# Example: Discover Drive Types and Create DDP Pool with RAID5
+####################################################################
+- name: Discover drives and create DDP Pool on VSP One Block storage
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_global_variables.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ######################################################################################
+    # Task Name : Discover all available drives and their types
+    ######################################################################################
+    - name: Get information about all disk drives
+      hitachivantara.vspone_block.vsp.hv_disk_drive_facts:
+        connection_info: "{{ connection_info }}"
+      register: drive_facts
+
+        #- name: Display all available disk drives summary
+        #ansible.builtin.debug:
+        #msg:
+        #  - "=== Available Drives Summary ==="
+        #  - "Total drives found: {{ drive_facts.ansible_facts.disk_drives.data | length }}"
+
+
+    ######################################################################################
+    # Task Name : Filter free drives suitable for DDP Pool
+    ######################################################################################
+    - name: Find free disk drives available for DDP Pool creation
+      ansible.builtin.set_fact:
+        free_drives: "{{ drive_facts.ansible_facts.disk_drives.data | selectattr('usage_type', 'equalto', 'FREE') | list }}"
+
+    - name: Display free disk drives information
+      ansible.builtin.debug:
+        msg:
+          - "=== Free Drives Available for DDP Pool ==="
+          - "Number of free drives: {{ free_drives | length }}"
+          - "Free drive types: {{ free_drives | map(attribute='drive_type') | unique | list }}"
+          - "Free drive locations: {{ free_drives | map(attribute='drive_location_id') | list }}"
+          - "Total free capacity: {{ (free_drives | map(attribute='total_capacity_mb') | map('int') | sum / 1024) | round(0) }} GB"
+
+    - name: Check if enough drives available for RAID5/6
+      ansible.builtin.debug:
+        msg:
+          - "RAID5/6 Requirement Check:"
+          - "Minimum drives needed: {{ minimum_data_drives }}"
+          - "Available free drives: {{ free_drives | length }}"
+          - "Status: {{ 'SUFFICIENT' if (free_drives | length >= minimum_data_drives ) else 'INSUFFICIENT' }}"
+
+
+    ######################################################################################
+    # Task Name : Summary and recommendations
+    ######################################################################################
+    - name: Display drive type information
+      ansible.builtin.debug:
+        msg:
+          - "=== Drive Configuration Summary ==="
+          - "Detected drive type code: {{ free_drives[0].drive_type }}"
+          - "Drive type name: {{ free_drives[0].drive_type_name }}"
+          - "Individual drive capacity: {{ free_drives[0].total_capacity }}"
+          - "Available free drives: {{ free_drives | length }}"
+          - "Total drives found: {{ drive_facts.ansible_facts.disk_drives.data | length }}"
+      when: free_drives | length > 0
+
+    - name: Warning if insufficient drives
+      ansible.builtin.debug:
+        msg:
+          - "WARNING: Insufficient drives for RAID5/6 DDP Pool"
+          - "Required: {{ minimum_data_drives }} drives minimum"
+          - "Available: {{ free_drives | length }} drives"
+          - "Please add more drives to create a RAID5/6 DDP Pool"
+      when: free_drives | length < minimum_data_drives
+
+    - name: Set fact of drive type for DDP Pool creation
+      ansible.builtin.set_fact:
+        drive_type_code_1: "{{ free_drives[0].drive_type }}"

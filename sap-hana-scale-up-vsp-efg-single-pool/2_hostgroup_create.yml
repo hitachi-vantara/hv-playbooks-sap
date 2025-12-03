@@ -1,0 +1,60 @@
+####################################################################
+# Example : Hostgroup Playbook
+####################################################################
+- name: Hostgroup Module
+  hosts: localhost
+  gather_facts: false
+  collections:
+    - hitachivantara.vspone_block.vsp
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_variables_create.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+####################################################################
+# Task 2 : Create hostgroup and update host mode & options
+####################################################################
+    - name: Create or update hostgroups for multiple ports with updated host mode options
+      hitachivantara.vspone_block.vsp.hv_hg:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+          serial: "{{ storage_serial }}"
+        state: "{{ state_present }}"
+        spec:
+          state: "{{ substate_set_host_mode_and_hmo }}"
+          name: "{{ item.hostgroup_port[2:5] | replace('-', '') }}-G00"
+          port: "{{ item.hostgroup_port }}"
+          host_mode: "{{ hostgroup_host_mode }}"
+          host_mode_options: "{{ hostgroup_host_mode_options }}"
+      loop: "{{ hostgroups }}"
+      register: result
+
+
+####################################################################
+# Task 3 : Add WWNs to the hostgroups
+####################################################################
+    - name: Add WWNs to the hostgroups
+      hitachivantara.vspone_block.vsp.hv_hg:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+          serial: "{{ storage_serial }}"
+        state: "{{ state_present }}"
+        spec:
+          state: "{{ substate_add_wwn }}"
+          name: "{{ item.hostgroup_port[2:5] | replace('-', '') }}-G00"
+          port: "{{ item.hostgroup_port }}"
+          wwns: "{{ item.hostgroup_wwns }}"
+      loop: "{{ hostgroups }}"
+      register: result
+
+
+        #    - debug:
+        #var: result.results

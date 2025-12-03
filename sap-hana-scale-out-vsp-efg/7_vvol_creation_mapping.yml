@@ -1,0 +1,170 @@
+---
+- name: Create and map LDEVs in dual pools for SAP HANA scale-out nodes
+  hosts: localhost
+  gather_facts: false
+  collections:
+    - hitachivantara.vspone_block.vsp
+  
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_global_variables.yml
+  
+  vars:
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ########################################################################
+    # Create OS, Shared, and 4 Data volumes in Pool 1 for all nodes
+    ########################################################################
+    - name: Create OS, Shared, and 4 Data vvols in Data Pool
+      hitachivantara.vspone_block.vsp.hv_ldev:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+          serial: "{{ storage_serial }}"
+        state: present
+        spec:
+          pool_id: "{{ dp_pool_id_1 }}"
+          size: "{{ item.1.size }}"
+          name: "{{ item.0.hostname }}{{ item.1.suffix }}"
+          capacity_saving: "disabled"
+          data_reduction_share: false
+          is_parallel_execution_enabled: true
+          is_compression_acceleration_enabled: false
+          is_full_allocation_enabled: true
+      with_nested:
+        - "{{ sap_hana_nodes }}"
+        - - { size: "{{ os_vvol_size }}", suffix: "_OS_VOL" }
+          - { size: "{{ shared_vvol_size }}", suffix: "_SH_VVOL" }
+          - { size: "{{ data_vvol_size }}", suffix: "_DATA_VVOL_1" }
+          - { size: "{{ data_vvol_size }}", suffix: "_DATA_VVOL_2" }
+          - { size: "{{ data_vvol_size }}", suffix: "_DATA_VVOL_3" }
+          - { size: "{{ data_vvol_size }}", suffix: "_DATA_VVOL_4" }
+      loop_control:
+        label: "{{ item.0.hostname }}{{ item.1.suffix }}"
+      register: pool1_volume_results
+
+    ########################################################################
+    # Create 4 LOG volumes in Pool 2 for all nodes
+    ########################################################################
+    - name: Create 4 LOG volumes in Log Pool
+      hitachivantara.vspone_block.vsp.hv_ldev:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+          serial: "{{ storage_serial }}"
+        state: present
+        spec:
+          pool_id: "{{ dp_pool_id_2 }}"
+          size: "{{ item.1.size }}"
+          name: "{{ item.0.hostname }}{{ item.1.suffix }}"
+          capacity_saving: "disabled"
+          data_reduction_share: false
+          is_parallel_execution_enabled: true
+          is_compression_acceleration_enabled: false
+          is_full_allocation_enabled: true
+      with_nested:
+        - "{{ sap_hana_nodes }}"
+        - - { size: "{{ log_vvol_size }}", suffix: "_LOG_VVOL_1" }
+          - { size: "{{ log_vvol_size }}", suffix: "_LOG_VVOL_2" }
+          - { size: "{{ log_vvol_size }}", suffix: "_LOG_VVOL_3" }
+          - { size: "{{ log_vvol_size }}", suffix: "_LOG_VVOL_4" }
+      loop_control:
+        label: "{{ item.0.hostname }}{{ item.1.suffix }}"
+      register: pool2_volume_results
+
+    ########################################################################
+    # Combine and reorder volumes per node (OS, Shared, LOG 1-4, DATA 1-4)
+    ########################################################################
+    - name: Group and reorder volumes by hostname
+      set_fact:
+        volumes_by_node: >-
+          {{
+            volumes_by_node | default({}) | combine({
+              item.hostname: (
+                pool1_results_for_node[0:2] +
+                pool2_results_for_node +
+                pool1_results_for_node[2:]
+              )
+            })
+          }}
+      vars:
+        # Get all pool1 results for this node (OS, Shared, DATA1-4)
+        pool1_results_for_node: >-
+          {{
+            pool1_volume_results.results 
+            | selectattr('item.0.hostname', 'equalto', item.hostname)
+            | map(attribute='volume')
+            | list
+          }}
+        # Get all pool2 results for this node (LOG1-4)
+        pool2_results_for_node: >-
+          {{
+            pool2_volume_results.results
+            | selectattr('item.0.hostname', 'equalto', item.hostname)
+            | map(attribute='volume')
+            | list
+          }}
+      loop: "{{ sap_hana_nodes }}"
+      loop_control:
+        label: "Grouping {{ item.hostname }}"
+      when: pool1_volume_results is defined and pool2_volume_results is defined
+
+    ########################################################################
+    #  Sort volumes by logical_unit_id_hex_format for each node
+    ########################################################################
+    - name: Sort ldev_ids by logical_unit_id_hex_format for each node
+      set_fact:
+        sorted_ldevs_by_node: >-
+          {{
+            sorted_ldevs_by_node | default({}) | combine({
+              item.key: item.value | sort(attribute='ldev_id_hex') | map(attribute='ldev_id') | list
+            })
+          }}
+      loop: "{{ volumes_by_node | dict2items }}"
+      loop_control:
+        label: "Sorting LDEVs for {{ item.key }}"
+      when: volumes_by_node is defined
+
+    - name: Sorted LDEVs by node
+      debug:
+        msg: "{{ item.key }}: {{ item.value }}"
+      loop: "{{ sorted_ldevs_by_node | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    ########################################################################
+    #  Map volumes to port1 for each node
+    ########################################################################
+    - name: Map volumes to port1 for each node
+      hitachivantara.vspone_block.vsp.hv_hg:
+        connection_info: "{{ connection_info }}"
+        state: present
+        spec:
+          state: present_ldev
+          name: "{{ item.hostname }}"
+          port: "{{ item.port1 }}"
+          ldevs: "{{ sorted_ldevs_by_node[item.hostname] }}"
+      loop: "{{ sap_hana_nodes }}"
+      loop_control:
+        label: "{{ item.hostname }} → port1 ({{ item.port1 }})"
+      when: sorted_ldevs_by_node[item.hostname] is defined
+
+    ########################################################################
+    #  Map volumes to port2 for each node
+    ########################################################################
+    - name: Map volumes to port2 for each node
+      hitachivantara.vspone_block.vsp.hv_hg:
+        connection_info: "{{ connection_info }}"
+        state: present
+        spec:
+          state: present_ldev
+          name: "{{ item.hostname }}"
+          port: "{{ item.port2 }}"
+          ldevs: "{{ sorted_ldevs_by_node[item.hostname] }}"
+      loop: "{{ sap_hana_nodes }}"
+      loop_control:
+        label: "{{ item.hostname }} → port2 ({{ item.port2 }})"
+      when: sorted_ldevs_by_node[item.hostname] is defined
+

@@ -1,0 +1,64 @@
+####################################################################
+# Variables for states : Common for all playbooks (Do not modify)
+####################################################################
+state_present : present
+state_sync : sync
+#
+####################################################################
+# Variables for substates, state feild inside spec (Do not modify)
+####################################################################
+substate_present_ldev : present_ldev
+substate_set_host_mode_and_hmo : set_host_mode_and_hmo
+substate_add_wwn : add_wwn
+substate_attach_ldev : attach_ldev
+#
+#
+####################################################################
+# Change storage port speed (This is optional and default set to auto)
+# Note: Update the correct Storage Port where your host is connected.
+####################################################################
+#
+portspeed : "AUT" ## If you want to set specific speeed then use "16G or 32G or 64G"
+port_security_status : true  ##For Direct connection this should be false else use true
+fabric_connection : true ## make it true if using Fibre Switch
+####################################################################
+#
+####################################################################
+# Update hostgroup modes (Do not modify if not sure)
+####################################################################
+#
+hostgroup_host_mode : "LINUX"
+hostgroup_host_mode_options : "[ 2, 94, 109 ]"
+#####################################################################
+#
+#####################################################################
+# Create parity group on SSD drives
+#####################################################################
+drive_type_1 : "SSD"             ## Modify only if disk type is different
+drive_capacity_1 : "7600 GB"          ## Modify only disk size is different in VSP
+free_disk_drives : 8                ## Number of Disks required for Parity Group (RAID)
+paritygroup_raid_type_1 : "2D+2D"
+paritygroup_is_encryption_enabled_1 : false
+paritygroup_is_copy_back_mode_enabled_1 : false
+paritygroup_is_accelerated_compression_enabled_1 : false
+####################################################################
+#
+####################################################################
+#  Create Storage Pools with pool Volumes (4 x PVOLs per pool) 
+####################################################################
+storagepool_name_1 : "ANS_SO_DATA_POOL"
+storagepool_name_2 : "ANS_SO_LOG_POOL"
+storagepool_size : "50GB"                    ### Per PVOL size
+pvol_name_1 : "ANS_CLX_DATA_PVOL"
+pvol_name_2 : "ANS_CLX_LOG_PVOL"
+####################################################################
+#
+####################################################################
+#  Create VVOL ldevs (OD, SH, 4 x Log & 4 x Data) in HDP Pools
+####################################################################
+os_vvol_size : 1GB
+shared_vvol_size : 2GB
+log_vvol_size : 1GB                     ### Per VVOL Size
+data_vvol_size : 2GB                    ### Per VVOL Size
+####################################################################
+

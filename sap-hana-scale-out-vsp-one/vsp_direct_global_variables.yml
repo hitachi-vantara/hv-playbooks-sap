@@ -1,0 +1,47 @@
+####################################################################
+# Variables for states : Common for all playbooks (Do not modify)
+####################################################################
+state_present : present
+state_sync : sync
+#
+####################################################################
+# Variables for substates, state feild inside spec (Do not modify)
+####################################################################
+substate_present_ldev : present_ldev
+substate_set_host_mode_and_hmo : set_host_mode_and_hmo
+substate_add_wwn : add_wwn
+substate_attach_ldev : attach_ldev
+#
+#
+####################################################################
+# Change storage port speed (This is optional and default set to auto)
+# Note: Update the correct Storage Port where your host is connected.
+####################################################################
+#
+portspeed : 0 ## If you want to set specific speeed then use "16G or 32G or 64G"
+port_security_status : true  ##For Direct connection this should be false else use true
+fabric_connection : true ## make it true if using Fibre Switch
+####################################################################
+#
+#
+#
+#####################################################################
+# Create Storage Pool (by default it will created RAID6 on minimum provided Disks)
+######################################################################
+name_of_pool : "Pool9D"  ## Define the Pool name
+minimum_data_drives : 9
+  #drive_type_code_1 : "SNM5C-R1R9NC"
+####################################################################
+#
+####################################################################
+#Create SAP HANA Volumes (OS, SH, 4xLog & 4xData) in DDP Pool
+####################################################################
+#dp_pool_id_1 : "0"
+#ddp_pool_id : "0"
+os_vol_size : 1GB
+shared_vol_size : 1GB
+log_vol_size : 1GB         ####per VVOL size
+data_vol_size : 2GB        ####per VVOL size
+
+number_of_digits : 2      ##For Volume naming
+

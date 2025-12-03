@@ -1,0 +1,50 @@
+---
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Filters and displays LDEVs (PVOLs/VVOLs) that contain a
+# specific keyword in their name, showing ID, Name, Size, Parity
+# Group, and Status.
+####################################################################
+
+####################################################################
+# LDEV Facts Playbook
+####################################################################
+- name: Logical Device Facts
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_variables_facts.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ####################################################################
+    # Get ldevs with specific keyword in name
+    ####################################################################
+    - name: Get all PVOLs from storage "{{ storage_address }}"
+      hitachivantara.vspone_block.vsp.hv_ldev_facts:
+        connection_info: "{{ connection_info }}"
+      register: result
+
+    - name: Filter PVOLs where name contain '{{ ldev_name_contain }}'
+      ansible.builtin.set_fact:
+        result_ldevs: "{{ result.ansible_facts.volumes | selectattr('name', 'defined') | selectattr('name', 'search', ldev_name_contain) | list }}"
+
+    - name: Print ldev_id, name and size of matching LDEVs name
+      ansible.builtin.debug:
+        msg: "LDEV ID: {{ item.ldev_id }}, Name: {{ item.name }}, Size: {{ item.total_capacity }}, Parity_Group: {{ item.parity_group_id }}, Status: {{ item.status }}"
+      loop: "{{ result_ldevs }}"
+      loop_control:
+        label: "{{ item.name }}"
+
