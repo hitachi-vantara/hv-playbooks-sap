@@ -1,0 +1,60 @@
+---
+####################################################################
+# Example : Parity Group Management Playbook
+####################################################################
+- name: Parity Group Management
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+
+  vars:
+    # Direct connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ####################################################################
+    # Task 1 : Get existing Parity Groups ID
+    ####################################################################
+
+    - name: Get existing parity group IDs
+      hitachivantara.vspone_block.vsp.hv_paritygroup_facts:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+          serial: "{{ storage_serial }}"
+      register: existing_parity_groups
+
+
+    - name: Debug extracted parity group IDs
+      ansible.builtin.debug:
+        msg: "Existing used parity group IDs: {{ existing_parity_groups.ansible_facts.parity_groups | default([]) | map(attribute='parity_group_id') | list }}"
+
+########################################################################
+# Next available parity group id which will use storage pool
+########################################################################
+
+    - name: Set next available parity group ID
+      ansible.builtin.set_fact:
+        next_parity_group_id: "{{ next_pg_id }}"
+      vars:
+        existing_ids: "{{ existing_parity_groups.ansible_facts.parity_groups | default([]) | map(attribute='parity_group_id') | select('match', '^[0-9]+-[0-9]+$') | list }}"
+        last_id: "{{ existing_ids | last | default('1-1') }}"
+        next_pg_id: >-
+          {%- set parts = last_id.split('-') | map('int') -%}
+          {%- set first_part = parts[0] -%}
+          {%- set second_part = parts[1] -%}
+          {%- if last_id == '0-0' -%}
+            1-1
+          {%- elif second_part < 9 -%}
+            {{ first_part }}-{{ second_part + 1 }}
+          {%- else -%}
+            {{ first_part + 1 }}-1
+          {%- endif -%}
+
+    - name: Debug next available parity group ID
+      ansible.builtin.debug:
+        msg: "Next available parity group ID: {{ next_parity_group_id }}"

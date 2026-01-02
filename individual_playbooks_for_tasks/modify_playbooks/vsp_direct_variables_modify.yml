@@ -1,0 +1,51 @@
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Central variable file containing configuration parameters
+# for storage pool expansion, LDEV resize, and port configuration.
+####################################################################
+
+##Variables for Modification or Facts##
+#
+#########################
+## Pool Variables
+########################
+target_pool_id : 0
+
+############################
+## Storage Ports
+###########################
+storage_port_port_1 : CL1-A
+storage_port_port_2 : CL2-A
+portspeed : "16G"
+
+############################
+# Resize LDEVs
+############################
+ldev_list : [2, 3, 4, 5]
+new_size : "10GB"
+
+##########################
+## Expand Storage Pool (VSP E/F/G Series)
+##########################
+storage_pool_name : "ANS_SO_DATA_POOL"
+new_pvol_size : "100GB"
+  #pvol_base_name : "ANS_CLX_LOG_PVOL"
+existing_parity_group_id : "1-3"
+
+#########################
+## Parity Group ID
+#########################
+new_parity_group_id :
+  - "2-3"
+
+###########################
+## LDEVs Variables
+###########################
+starting_ldev_name : "ANS_SU_ICX"
+
+
+

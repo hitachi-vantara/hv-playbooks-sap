@@ -1,0 +1,99 @@
+---
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Expands storage pool capacity by adding a new PVOL from
+# an existing parity group and auto-assigns a sequential name based
+# on existing volume naming convention.
+####################################################################
+
+####################################################################
+# Storage Pool Playbook
+###################################################################
+- name: Storage Pool Module
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_variables_modify.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+
+  tasks:
+    # 1. Get existing LDEV details by querying the PG directly
+    - name: Get LDEV details for sequencing
+      hitachivantara.vspone_block.vsp.hv_ldev_facts:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+            serial: "{{ storage_serial }}"
+        spec:
+          parity_group_id: "{{ existing_parity_group_id }}"
+      register: ldev_facts_before
+
+    # 2. Auto-discover base name and calculate next sequence
+    - name: Discover base name and calculate next sequence
+      ansible.builtin.set_fact:
+        pvol_base_name: "{{ discovered_base_name }}"
+        next_seq: "{{ (current_max | int) + 1 }}"
+      vars:
+        source_volumes: "{{ ldev_facts_before.ansible_facts.volumes | default([]) }}"
+        first_named_vol: "{{ source_volumes | selectattr('name', 'defined') | rejectattr('name', 'equalto', '') | first | default({}) }}"        
+        discovered_base_name: "{{ (first_named_vol.name | default('')) | regex_replace('_[0-9]+$', '') }}"
+        names: "{{ source_volumes 
+                   | selectattr('name', 'defined') 
+                   | map(attribute='name') 
+                   | select('match', '^' + discovered_base_name + '_[0-9]+$') 
+                   | list }}"       
+        current_max: "{{ names | map('regex_replace', '^.*_([0-9]+)$', '\\1') | map('int') | max if names else 0 }}"
+      failed_when: discovered_base_name == ""
+
+    - name: Debug discovered info
+      ansible.builtin.debug:
+        msg: "Discovered Base Name: {{ pvol_base_name }} | Next Sequence: {{ next_seq }}"
+
+    # 3. Expand Storage Pool
+    - name: Create new PVOL and expanding size of Storage Pool "{{ storage_pool_name }}"
+      hitachivantara.vspone_block.vsp.hv_storagepool:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+            serial: "{{ storage_serial }}"
+        state: "present"
+        spec:
+          name: "{{ storage_pool_name }}"
+          pool_volumes:
+            - parity_group_id: "{{ existing_parity_group_id }}"
+              capacity: "{{ new_pvol_size }}"
+      register: expand_result
+
+    # 4. Get PG LDEVs AFTER expansion
+    - name: Get PG LDEVs after expansion
+      hitachivantara.vspone_block.vsp.hv_paritygroup_facts:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+            serial: "{{ storage_serial }}"
+        spec:
+          parity_group_id: "{{ existing_parity_group_id }}"
+      register: pg_after
+      when: expand_result.changed
+
+    # 5. Rename the single new LDEV
+    - name: Assigning name to the newly created PVOL in Storage Pool "{{ storage_pool_name }}"
+      hitachivantara.vspone_block.vsp.hv_ldev:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+            serial: "{{ storage_serial }}"
+        state: "present"
+        spec:
+          ldev_id: "{{ (pg_after.ansible_facts.parity_group.ldev_ids | difference(ldev_facts_before.ansible_facts.volumes | map(attribute='ldev_id') | list)) | first }}"
+          name: "{{ pvol_base_name }}_{{ next_seq }}"
+      when: expand_result.changed

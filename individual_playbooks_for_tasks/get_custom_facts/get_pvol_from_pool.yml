@@ -1,0 +1,86 @@
+---
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Retrieves all LDEVs (PVOLs) belonging to storage pools
+# that match a specific name pattern. Displays a summary of pool
+# capacity and individual volume details.
+####################################################################
+
+####################################################################
+# Playbook: Get LDEV Facts
+####################################################################
+- name: Get LDEV Facts Summary
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_variables_facts.yml
+
+  vars:
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ###################################################################
+    # Task: Get Storage pool ID
+    # #################################################################
+    - name: Get all storage pools
+      hitachivantara.vspone_block.vsp.hv_storagepool_facts:
+        connection_info: "{{ connection_info }}"
+      register: pool_result
+
+    - name: Filter Storage Pool where name contain '{{ pool_name_contain }}'
+      ansible.builtin.set_fact:
+        result_pool: "{{ pool_result.ansible_facts.storage_pool | selectattr('pool_name', 'defined') | selectattr('pool_name', 'search', pool_name_contain) | list }}"
+
+    - name: Print pool_id, name and size
+      ansible.builtin.debug:
+        msg: "POOL ID: {{ item.pool_id }}, Name: {{ item.pool_name }}, Size_MB: {{ item.total_pool_capacity_mb }}, Pool_Type: {{ item.pool_type }}, Status: {{ item.pool_status }}"
+      loop: "{{ result_pool }}"
+      loop_control:
+        label: "{{ item.pool_name }}"
+
+
+    ####################################################################
+    # Task: Get LDEV facts for given pool ID
+    ####################################################################
+    - name: Get LDEV details for given pool_id
+      hitachivantara.vspone_block.vsp.hv_ldev_facts:
+        connection_info: "{{ connection_info }}"
+        spec:
+          pool_id: "{{ item.pool_id }}"
+      loop: "{{ result_pool }}"
+      loop_control:
+        label: "{{ item.pool_name }}"
+            #pool_id: "{{ target_pool_id }}"
+      register: result
+
+    ####################################################################
+    # Task: Print PVOL summary
+    ####################################################################
+    - name: Print all Pool Volumes (PVOL) summary
+      ansible.builtin.debug:
+        msg: "{{ ldev_summary }}"
+      vars:
+        ldev_summary: >-
+          {{
+            {
+              "LDEV ID": item.ldev_id | default(''),
+              "Name": item.name | default(''),
+              "Parity Group ID": item.parity_group_id | default(''),
+              "Total Capacity": item.total_capacity | default(''),
+              "Num of Ports": item.num_of_ports | default(0),
+              "Hostgroups": item.hostgroups | default([])
+            }
+          }}
+      loop: "{{ result.results | map(attribute='ansible_facts.volumes') | flatten(1) | list }}"
+      loop_control:
+        label: "{{ item.name | default(item.ldev_id) }}"
+      when: (result.results | map(attribute='ansible_facts.volumes') | flatten(1) | length > 0)

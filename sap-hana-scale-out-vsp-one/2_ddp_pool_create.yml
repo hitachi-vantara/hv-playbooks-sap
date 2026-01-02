@@ -1,0 +1,57 @@
+---
+####################################################################
+# Example :  VSP DDP Pool Playbook
+####################################################################
+- name: Create and manage DDP Pool on VSP One Block storage
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_global_variables.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ######################################################################################
+    # Task Name : Create a DDP Pool
+    ######################################################################################
+    - name: Create a DDP Pool on "{{ minimum_data_drives }}" available Disks
+      hitachivantara.vspone_block.vsp.hv_ddp_pool:
+        connection_info: "{{ connection_info }}"
+        state: present
+        spec:
+          pool_name: "{{ name_of_pool }}"
+          is_encryption_enabled: false
+          threshold_warning: 70
+          threshold_depletion: 80
+          drives:
+            - drive_type_code: "{{ drive_type_code_1 }}"
+              data_drive_count: "{{ minimum_data_drives }}"
+      register: ddp_create_result
+
+        #- name: Debug result
+        #ansible.builtin.debug:
+        # var: ddp_create_result
+
+    - name: Set pool_id value for volume creation
+      ansible.builtin.set_fact:
+        ddp_pool_id: "{{ ddp_create_result.DDP_Pool.id }}"
+
+    - name: Display Storage pool creation result
+      ansible.builtin.debug:
+        msg:
+          - "DDP Pool '{{ ddp_create_result.DDP_Pool.name }}' created successfully"
+          - "Pool ID: {{ ddp_create_result.DDP_Pool.id }}"
+          - "Total Capacity: {{ (ddp_create_result.DDP_Pool.total_capacity_mb / 1024) | round(2) }} GB ({{ (ddp_create_result.DDP_Pool.total_capacity_mb / 1024 / 1024) | round(2) }} TB)"
+          - "Effective Capacity: {{ (ddp_create_result.DDP_Pool.effective_capacity_mb / 1024) | round(2) }} GB ({{ (ddp_create_result.DDP_Pool.effective_capacity_mb / 1024 / 1024) | round(2) }} TB)"
+          - "RAID Level: {{ ddp_create_result.DDP_Pool.drives[0].raid_level }}"
+          - "Number of Drives: {{ ddp_create_result.DDP_Pool.drives[0].number_of_drives }}"
+          - "Drive Type: {{ ddp_create_result.DDP_Pool.drives[0].drive_type }}"
+          - "Encryption: {{ ddp_create_result.DDP_Pool.encryption }}"
+      when: ddp_create_result is succeeded

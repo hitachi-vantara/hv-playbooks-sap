@@ -1,0 +1,52 @@
+---
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Forcibly deletes a specific list of LDEV IDs provided in
+# a variable list. Include unmapping from hostgroups automatically.
+####################################################################
+
+####################################################################
+# LDEV  Playbook
+####################################################################
+- name: Logical Device Module
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_variables_delete.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ####################################################################
+    # Task : Delete ldevs and forcely unmap from hostgroup
+    ####################################################################
+    - name: Unmap ldevs for hostgroup and delete volumes
+      hitachivantara.vspone_block.vsp.hv_ldev:
+        connection_info: "{{ connection_info }}"
+        state: "absent"
+        spec:
+          ldev_id: "{{ item }}"
+          force: true
+      loop: "{{ delete_ldev_list }}"
+      register: result
+
+        #- name: Debug the result variable
+        #ansible.builtin.debug:
+        #var: result
+
+
+    - name: Show LDEV IDs which were deleted
+      debug:
+        msg: "Deleted_Ldev_IDs {{ delete_ldev_list }}"
+

@@ -1,0 +1,68 @@
+---
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Retrieves and displays detailed summary information for
+# all Dynamic Provisioning Pools (DDP), including capacity, RAID
+# levels, drive details, and encryption status.
+####################################################################
+
+####################################################################
+#  VSP DDP Pool facts Playbook
+####################################################################
+- name: Retrieves DDP Pool information from VSP One storage
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ######################################################################################
+    # Task Name : Get all DDP Pool information
+    ######################################################################################
+    - name: Get all DDP Pool information in VSP One Block Storage {{ storage_address }}
+      hitachivantara.vspone_block.vsp.hv_ddp_pool_facts:
+        connection_info: "{{ connection_info }}"
+
+      register: result
+
+        #- name: Debug result
+        #ansible.builtin.debug:
+        #var: result
+
+    - name: Print all DDP Storage pools summary
+      ansible.builtin.debug:
+        msg: "{{ ddp_pool_summary }}"
+      vars:
+        ddp_pool_summary: >-
+          {{
+            {
+              "Pool ID": item.id,
+              "Pool Name": item.name,
+              "Capacity Saving": item.contains_capacity_saving_volume,
+              "Num of Volumes": item.number_of_volumes,
+              "Status": item.status,
+              "Encryption Status": item.encryption,
+              "Total Capacity (GB)": (item.total_capacity_mb | int // 1024),
+              "Used Capacity (GB)": (item.used_capacity_mb | int // 1024),
+              "Pool Type": item.drives[0].parity_group_type,
+              "RAID Level": item.drives[0].raid_level,
+              "Num of Drives": item.drives[0].number_of_drives,
+              "Each Drive Capacity": item.drives[0].display_drive_capacity
+            }
+          }}
+      loop: "{{ result.ansible_facts.DDP_Pools }}"
+      loop_control:
+        label: "{{ item.name }}"
+

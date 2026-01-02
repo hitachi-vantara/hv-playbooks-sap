@@ -1,0 +1,77 @@
+---
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Identifies LDEVs by name pattern and detaches (unpresents)
+# them from their connected hostgroups without deleting the volumes.
+####################################################################
+
+####################################################################
+# Delete/Detach ldev(s) from host
+####################################################################
+- name: Delete ldevs from host
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_variables_delete.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ####################################################################
+    # Get ldevs with same name for a server
+    ####################################################################
+    - name: Get all LDEVs from storage "{{ storage_address }}"
+      hitachivantara.vspone_block.vsp.hv_ldev_facts:
+        connection_info: "{{ connection_info }}"
+      register: result
+
+    - name: Filter LDEVs where name starts with '{{ starting_ldev_name }}'
+      ansible.builtin.set_fact:
+        result_ldevs: "{{ result.ansible_facts.volumes | selectattr('name', 'defined') | selectattr('name', 'search', ('^' ~ starting_ldev_name)) | list }}"
+
+    - name: Print ldev_id, name and size of matching LDEVs which will Delete.
+      ansible.builtin.debug:
+        msg: "LDEV ID: {{ item.ldev_id }}, Name: {{ item.name }}, Size: {{ item.total_capacity }}, HostGroup: {{ item.hostgroups | map(attribute='name') | join(', ') }}, Port_ID: {{ item.hostgroups | map(attribute='port_id') | join(', ') }}"
+      loop: "{{ result_ldevs }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+
+    ####################################################################
+    # Task Name : Detach ldevs from host group with direct connection
+    ####################################################################
+    - name: Detach ldevs from host group with direct connection
+      hitachivantara.vspone_block.vsp.hv_hg:
+        connection_info: "{{ connection_info }}"
+        state: "present"
+        spec:
+          state: "unpresent_ldev"
+          name: "{{ item.1.name }}"
+          host_group_number: "{{ item.1.id }}"
+          port: "{{ item.1.port_id }}"
+          ldevs: ["{{ item.0.ldev_id }}"]
+            #should_delete_all_ldevs: true
+            #should_release_host_reserve: true
+      with_subelements:
+        - "{{ result_ldevs }}"
+        - hostgroups
+      loop_control:
+        label: "{{ item.0.name }} from {{ item.1.name }} ({{ item.1.id }}) on {{ item.1.port_id }}"
+          #label: "{{ item.0.name }} from hostgroup {{ item.1.id }} on {{ item.1.port_id }}"
+      register: detach_result
+
+    - name: Debug the result variable
+      ansible.builtin.debug:
+        var: detach_result
+

@@ -1,0 +1,64 @@
+---
+####################################################################
+# Example : Hostgroup Playbook
+####################################################################
+- name: Hostgroup Module
+  hosts: localhost
+  gather_facts: false
+  collections:
+    - hitachivantara.vspone_block.vsp
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_global_variables.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    #######################################################################
+    # Task : Create hostgroup and update host mode & options for each node
+    #######################################################################
+    - name: Create or update hostgroups with updated host mode options for all SAP HANA nodes
+      hitachivantara.vspone_block.vsp.hv_hg:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+          serial: "{{ storage_serial }}"
+        state: "{{ state_present }}"
+        spec:
+          state: "{{ substate_set_host_mode_and_hmo }}"
+          name: "{{ item.hostname }}"
+          port: "{{ item.port1 }}" # Use port1 to create the hostgroup
+          host_mode: "{{ hostgroup_host_mode }}"
+          host_mode_options: "{{ hostgroup_host_mode_options }}"
+      loop: "{{ sap_hana_nodes }}"
+      loop_control:
+        label: "{{ item.hostname }}"
+      register: result_hg_create
+      ignore_errors: true
+
+    ####################################################################
+    # Task : Add WWNs to the hostgroups
+    ####################################################################
+    - name: Add BOTH WWNs (from port1 and port2) to the {{ item.hostname }} hostgroup
+      hitachivantara.vspone_block.vsp.hv_hg:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+          serial: "{{ storage_serial }}"
+        state: "{{ state_present }}"
+        spec:
+          state: "{{ substate_add_wwn }}"
+          name: "{{ item.hostname }}"
+          port: "{{ item.port1 }}"
+          wwns:
+            - wwn: "{{ item.wwn1 }}"
+            - wwn: "{{ item.wwn2 }}"
+      loop: "{{ sap_hana_nodes }}"
+      loop_control:
+        label: "Adding WWNs for {{ item.hostname }}"
+      register: result_add_wwns
+      ignore_errors: true

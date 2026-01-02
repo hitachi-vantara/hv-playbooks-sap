@@ -1,0 +1,64 @@
+---
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Expands the capacity of specified LDEVs to a new size
+# and displays a summary of the resized volumes.
+####################################################################
+
+####################################################################
+# LDEV  Playbook
+####################################################################
+- name: Logical Device Module
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_variables_modify.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ####################################################################
+    # Task : Expand size of ldev
+    ####################################################################
+    - name: Expand size of ldev
+      hitachivantara.vspone_block.vsp.hv_ldev:
+        connection_info: "{{ connection_info }}"
+        state: "present"
+        spec:
+          #pool_id: 0
+          ldev_id: "{{ item }}"
+          size: "{{ new_size }}"
+      loop: "{{ ldev_list }}"
+      register: result
+
+        #- name: Debug the result variable
+        #ansible.builtin.debug:
+        #var: result
+    - name: Collect only ldev_id, size, and name
+      set_fact:
+        ldev_summary: "{{ ldev_summary | default([]) + [ {
+          'ldev_id': item.volume.ldev_id,
+          'size': item.volume.total_capacity,
+          'name': item.volume.name
+        } ] }}"
+      loop: "{{ result.results }}"
+      loop_control:
+        label: "{{ item.volume.ldev_id }}"
+
+
+    - name: Show custom LDEV summary
+      debug:
+        msg: "Ldev_ID {{ item.ldev_id }} | New_Size: {{ item.size }} | Volume_Name: {{ item.name }}"
+      loop: "{{ ldev_summary }}"
+

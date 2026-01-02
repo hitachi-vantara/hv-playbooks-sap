@@ -1,0 +1,74 @@
+---
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Retrieves all Server profiles from VSP One and deletes
+# them by ID while keeping LUN configuration (if specified).
+####################################################################
+
+####################################################################
+# Hostgroup Facts Playbook
+####################################################################
+- name: VSP One Server Profile update
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_variables_delete.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ####################################################################
+    # Task Name : Get all servers
+    ####################################################################
+    - name: Get all servers profile of VSP One Block Storage {{ storage_address }}
+      hitachivantara.vspone_block.vsp.hv_vsp_one_server_facts:
+        connection_info: "{{ connection_info }}"
+      register: result
+
+    - name: Extract only nickname of Servers profile
+      ansible.builtin.set_fact:
+        profile: "{{ result.ansible_facts.servers }}"
+
+          #- name: Debug the result variable
+          #ansible.builtin.debug:
+          #var: profile
+
+    - name: Print id, nickname, paths and Volumes of Servers profile which will delete.
+      ansible.builtin.debug:
+        msg: "Server_ID: {{ item.id }}, NickName: {{ item.nickname }}, Number_of_paths: {{ item.number_of_paths }}, Volumes: {{ item.number_of_volumes }}, Paths: {{ item.paths }}"
+      loop: "{{ profile }}"
+      loop_control:
+        label: "{{ item.nickname }}"
+
+    ####################################################################
+    # Task Name : Delete server using server_id
+    ####################################################################
+    - name: Delete server profile using server_id
+      hitachivantara.vspone_block.vsp.hv_vsp_one_server:
+        state: absent
+        connection_info: "{{ connection_info }}"
+        spec:
+          server_id: "{{ item.id }}"
+          keep_lun_config: true
+            #nick_name: "{{ item.nickname }}"
+      loop: "{{ profile }}"      
+      loop_control:
+        label: "{{ item.nickname }}"
+      register: deleted_result
+
+
+        #- name: Debug the result variable
+        #ansible.builtin.debug:
+        # var: deleted_result
+

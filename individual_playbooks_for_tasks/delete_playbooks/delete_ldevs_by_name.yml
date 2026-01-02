@@ -1,0 +1,72 @@
+---
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Finds and forcibly deletes all LDEVs that match a
+# specific name pattern (prefix). Includes unmapping from hostgroups.
+####################################################################
+
+####################################################################
+# LDEV Facts Playbook
+####################################################################
+- name: Logical Device Facts
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_variables_delete.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ####################################################################
+    # Get ldevs with same name
+    ####################################################################
+    - name: Get all LDEVs from storage "{{ storage_address }}"
+      hitachivantara.vspone_block.vsp.hv_ldev_facts:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+            serial: "{{ storage_serial }}"
+      register: result
+
+    - name: Filter LDEVs where name starts with '{{ starting_ldev_name }}'
+      ansible.builtin.set_fact:
+        result_ldevs: "{{ result.ansible_facts.volumes | selectattr('name', 'defined') | selectattr('name', 'search', ('^' ~ starting_ldev_name)) | list }}"
+
+    - name: Print ldev_id, name and size of matching LDEVs which will Delete.
+      ansible.builtin.debug:
+        msg: "LDEV ID: {{ item.ldev_id }}, Name: {{ item.name }}, Size: {{ item.total_capacity }}"
+      loop: "{{ result_ldevs }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    #########################################################################################################
+    # Force delete ldev removes the ldev from hostgroups, iscsi targets or NVMe subsystem namespace
+    #########################################################################################################
+    - name: Force delete ldev, removes the ldev from hostgroups in storage "{{ storage_address }}"
+      hitachivantara.vspone_block.vsp.hv_ldev:
+        connection_info: "{{ connection_info }}"
+        state: "absent"
+        spec:
+          ldev_id: "{{ item.ldev_id }}"
+          force: true
+      loop: "{{ result_ldevs }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: deleted_result
+
+    - name: Print Volumes which have been deleted
+      ansible.builtin.debug:
+        msg: "Volumes starting with {{ starting_ldev_name }} name have been deleted."
+          #msg: "DELETED VOLUME: LDEV ID: {{ item.ldev_id }}, Name: {{ item.name }}, Size: {{ item.total_capacity }}"
+
+

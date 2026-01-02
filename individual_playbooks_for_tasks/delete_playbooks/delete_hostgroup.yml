@@ -1,0 +1,51 @@
+---
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Deletes a specific hostgroup from multiple ports,
+# forcibly DELETE ALL MAPPED LDEVs and releasing host reserves.
+####################################################################
+
+####################################################################
+# Hostgroup Facts Playbook
+####################################################################
+- name: Hostgroup Update
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_variables_delete.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ####################################################################
+    # Task Name : Delete hostgroup
+    ####################################################################
+    - name: Delete hostgroup for multiple ports from storage "{{ storage_address }}"
+      hitachivantara.vspone_block.vsp.hv_hg:
+        connection_info: "{{ connection_info }}"
+        state: "absent"
+        spec:
+          name: "{{ item.hostgroup_port[2:5] | replace('-', '') }}-G00"
+          port: "{{ item.hostgroup_port }}"
+          should_delete_all_ldevs: false   ###make this true if you want to delete LDEVs also
+          should_release_host_reserve: true
+      loop: "{{ hostgroups }}"
+      loop_control:
+        label: "{{ item }}"
+      register: result
+
+    - name: Debug the deletion results
+      ansible.builtin.debug:
+        var: result
+

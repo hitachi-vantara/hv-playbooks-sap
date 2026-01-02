@@ -1,0 +1,97 @@
+---
+####################################################################
+# Example : Parity Group Management Playbook
+####################################################################
+- name: Parity Group Management
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_global_variables.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ####################################################################
+    # Get Free Disk Drives
+    ####################################################################
+    - name: Get all disk drives
+      hitachivantara.vspone_block.vsp.hv_disk_drive_facts:
+        connection_info: "{{ connection_info }}"
+        storage_system_info:
+          serial: "{{ storage_serial }}"
+      register: result
+
+    - name: Declare free drive lists
+      ansible.builtin.set_fact:
+        free_drives_1: []
+        free_drives_2: []
+
+    - name: Select drives which are available for new parity group creation (Parity Group 1)
+      ansible.builtin.set_fact:
+        free_drives_1: "{{ free_drives_1 + [item.drive_location_id] | shuffle }}"
+      loop: "{{ result.ansible_facts.disk_drives.data }}"
+      when: item.usage_type == "FREE" and item.drive_type_name == drive_type_1 and item.total_capacity == drive_capacity_1
+
+    - name: Select drives which are available for new parity group creation (Parity Group 2)
+      ansible.builtin.set_fact:
+        free_drives_2: "{{ free_drives_2 + [item.drive_location_id] | shuffle }}"
+      loop: "{{ result.ansible_facts.disk_drives.data | difference(free_drives_1) }}"
+      when: item.usage_type == "FREE" and item.drive_type_name == drive_type_1 and item.total_capacity == drive_capacity_1
+
+    - name: Total free drives (Parity Group 1)
+      ansible.builtin.debug:
+        msg: "Total free drives for Parity Group 1 is {{ free_drives_1 | length }}"
+
+    - name: Total free drives (Parity Group 2)
+      ansible.builtin.debug:
+        msg: "Total free drives for Parity Group 2 is {{ free_drives_2 | length }}"
+
+    - name: Terminate workflow if number of drives are less than "{{ free_disk_drives }}"
+      fail:
+        msg: "Number of free drives are less than require for parity group. Terminating the Workflow !!!!"
+      when: free_drives_1 | length < free_disk_drives
+
+    - name: Select four drives (Parity Group 1)
+      ansible.builtin.set_fact:
+        free_disk_drives_1: "{{ free_drives_1[0:4] | list }}"
+
+    - name: Select four drives (Parity Group 2)
+      ansible.builtin.set_fact:
+        free_disk_drives_2: "{{ free_drives_2[4:8] | list }}"
+
+    ####################################################################
+    #  Create Parity Group
+    ####################################################################
+    - name: Create new Parity Groups
+      block:
+        - name: Create Parity Group 1 on ID "{{ next_parity_group_id }}" with raid type "{{ paritygroup_raid_type_1 }}"
+          hitachivantara.vspone_block.vsp.hv_paritygroup:
+            connection_info: "{{ connection_info }}"
+            state: "present"
+            spec:
+              parity_group_id: "{{ next_parity_group_id }}"
+              raid_type: "{{ paritygroup_raid_type_1 }}"
+              is_encryption_enabled: "{{ paritygroup_is_encryption_enabled_1 }}"
+              is_copy_back_mode_enabled: "{{ paritygroup_is_copy_back_mode_enabled_1 }}"
+              is_accelerated_compression_enabled: "{{ paritygroup_is_accelerated_compression_enabled_1 }}"
+              drive_location_ids: "{{ free_disk_drives_1 }}"
+
+        - name: Create Parity Group 2 on ID "{{ next_parity_group_id_2 }}" with raid type "{{ paritygroup_raid_type_1 }}"
+          hitachivantara.vspone_block.vsp.hv_paritygroup:
+            connection_info: "{{ connection_info }}"
+            state: "present"
+            spec:
+              parity_group_id: "{{ next_parity_group_id_2 }}"
+              raid_type: "{{ paritygroup_raid_type_1 }}"
+              is_encryption_enabled: "{{ paritygroup_is_encryption_enabled_1 }}"
+              is_copy_back_mode_enabled: "{{ paritygroup_is_copy_back_mode_enabled_1 }}"
+              is_accelerated_compression_enabled: "{{ paritygroup_is_accelerated_compression_enabled_1 }}"
+              drive_location_ids: "{{ free_disk_drives_2 }}"
+      ignore_errors: false

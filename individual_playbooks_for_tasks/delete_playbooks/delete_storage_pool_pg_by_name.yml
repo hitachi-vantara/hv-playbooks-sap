@@ -1,0 +1,87 @@
+---
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Deletes storage pools matching a name pattern, including
+# all their pool volumes, and subsequently deletes the associated
+# parity groups provided in variable file.
+####################################################################
+
+######################################################################################
+# Storage Pool Playbook
+######################################################################################
+- name: Storage Pool Module
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+    - vsp_direct_variables_delete.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ####################################################################
+    # Task Name : Get Storage Pool by name
+    ####################################################################
+    - name: Get storage pool using starting with name "{{ starting_pool_name }}"
+      hitachivantara.vspone_block.vsp.hv_storagepool_facts:
+        connection_info: "{{ connection_info }}"
+      register: pool_result
+
+    - name: Filter Pools where name starts with '{{ starting_pool_name }}'
+      ansible.builtin.set_fact:
+        filter_pools: "{{ pool_result.ansible_facts.storage_pool | selectattr('pool_name', 'defined') | selectattr('pool_name', 'search', ('^' ~ starting_pool_name)) | list }}"
+
+    - name: Print pool_id, name and status of matching Storage Pools which will Delete
+      ansible.builtin.debug:
+        msg: "Pool ID: {{ item.pool_id }}, Name: {{ item.pool_name }}, Status: {{ item.pool_status }}, Volume Count: {{ item.located_volume_count }}"
+      loop: "{{ filter_pools }}"
+      loop_control:
+        label: "{{ item.pool_name }}"
+
+    ######################################################################################
+    # Task Name : Delete a pool including pool volumes
+    ######################################################################################
+    - name: Delete Storage pool including its pool volumes or LDEVs
+      hitachivantara.vspone_block.vsp.hv_storagepool:
+        connection_info: "{{ connection_info }}"
+        state: "absent"
+        spec:
+          name: "{{ item.pool_name }}"
+          should_delete_pool_volumes: true
+      loop: "{{ filter_pools }}"
+      loop_control:
+        label: "{{ item.pool_name }}"
+      register: pool_delete_result
+
+        #- name: Debug the result variable
+        #ansible.builtin.debug:
+        #var: pool_delete_result
+
+    ####################################################################
+    # Task Name : Delete Parity Group
+    ####################################################################
+    - name: Delete Parity Group "{{ parity_group_id }}"
+      hitachivantara.vspone_block.vsp.hv_paritygroup:
+        connection_info: "{{ connection_info }}"
+        state: "absent"
+        spec:
+          parity_group_id: "{{ item }}"
+      loop: "{{ parity_group_id }}"
+      loop_control:
+        label: "PG {{ item }}"
+      register: pg_delete_result
+
+        #  - name: Debug the result variable
+        #ansible.builtin.debug:
+        # var: pg_delete_result
+

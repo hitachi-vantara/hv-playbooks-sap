@@ -1,0 +1,59 @@
+---
+####################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: November 2025
+#
+# Summary: Retrieves detailed facts for all HDP Storage Pools and
+# displays a custom summary including Pool ID, Type, LDEV count,
+# Status, and Capacity utilization metrics for VSP E/F/G Series.
+####################################################################
+
+####################################################################
+# Storage Pool Facts Playbook
+####################################################################
+- name: HDP Storage Pool Facts
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ~/playbooks/ansible_vault_vars/ansible_vault_storage_var.yml
+
+  vars:
+    # Common connection info for all tasks
+    connection_info:
+      address: "{{ storage_address }}"
+      username: "{{ vault_storage_username }}"
+      password: "{{ vault_storage_secret }}"
+
+  tasks:
+    ####################################################################
+    # Task 2 : Get Resource Group by name
+    ####################################################################
+    - name: Get all storage pools
+      hitachivantara.vspone_block.vsp.hv_storagepool_facts:
+        connection_info: "{{ connection_info }}"
+      register: result
+
+    - name: Print all storage pools summary only
+      ansible.builtin.debug:
+        msg: "{{ storage_pool_summary }}"
+      vars:
+        storage_pool_summary: >-
+          {{
+            {
+              "Pool ID": item.pool_id,
+              "Pool Name": item.pool_name,
+              "Type": item.pool_type,
+              "Num of LDEVs": item.num_of_ldevs,
+              "Status": item.pool_status,
+              "Used Capacity Rate (%)": item.used_capacity_rate,
+              "Total Capacity (GB)": (item.total_pool_capacity_mb | int // 1024),
+              "Used Capacity (GB)": ((item.total_pool_capacity_mb * item.used_capacity_rate // 100) | int // 1024)
+            }
+          }}
+      loop: "{{ result.ansible_facts.storage_pool }}"
+      loop_control:
+        label: "{{ item.pool_name }}"
+
