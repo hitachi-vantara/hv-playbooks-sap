@@ -1,0 +1,6 @@
+- import_tasks: detect_os.yml
+- import_tasks: multipath.yml
+- import_tasks: detect_disks.yml
+- import_tasks: create_vgs_lvs.yml
+- import_tasks: filesystems_mounts.yml
+

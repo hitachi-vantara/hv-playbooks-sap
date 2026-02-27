@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Ensure that the required packages are installed
+  ansible.builtin.package:
+    state: present
+    name: "{{ item }}"
+  loop: "{{ __sap_hana_preconfigure_packages_2684254 }}"

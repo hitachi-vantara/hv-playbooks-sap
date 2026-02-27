@@ -1,0 +1,45 @@
+---
+- name: Create Volume Group for HANA shared
+  community.general.lvg:
+    vg: "{{ hana_vg_shared }}"
+    pvs: "{{ hana_shared_devices }}"
+    pesize: 4M
+  when: hana_shared_devices | length > 0
+
+- name: Create Logical Volume for HANA shared
+  community.general.lvol:
+    vg: "{{ hana_vg_shared }}"
+    lv: "{{ hana_lv_shared }}"
+    size: "100%FREE"
+  when: hana_shared_devices | length > 0
+
+- name: Create Volume Group for HANA data
+  community.general.lvg:
+    vg: "{{ hana_vg_data }}"
+    pvs: "{{ hana_data_devices }}"
+    pesize: 4M
+  when: hana_data_devices | length > 0
+
+- name: Create Striped Logical Volume for HANA data
+  community.general.lvol:
+    vg: "{{ hana_vg_data }}"
+    lv: "{{ hana_lv_data }}"
+    size: "100%FREE"
+    opts: "--stripes {{ hana_data_devices | length }} --stripesize {{ hana_lvm_stripe_size | default('256k') }}"
+  when: hana_data_devices | length > 0
+
+- name: Create Volume Group for HANA log
+  community.general.lvg:
+    vg: "{{ hana_vg_log }}"
+    pvs: "{{ hana_log_devices }}"
+    pesize: 4M
+  when: hana_log_devices | length > 0
+
+- name: Create Striped Logical Volume for HANA log
+  community.general.lvol:
+    vg: "{{ hana_vg_log }}"
+    lv: "{{ hana_lv_log }}"
+    size: "100%FREE"
+    opts: "--stripes {{ hana_log_devices | length }} --stripesize {{ hana_lvm_stripe_size | default('256k') }}"
+  when: hana_log_devices | length > 0
+

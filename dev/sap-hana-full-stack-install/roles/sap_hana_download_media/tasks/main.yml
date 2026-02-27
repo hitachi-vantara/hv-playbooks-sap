@@ -1,0 +1,9 @@
+---
+# Tasks to download and extract HANA packages from SAP Launchpad
+
+- name: Download SAP HANA media files
+  import_tasks: download_media.yml
+
+    #- name: Extract SAP HANA media
+    #import_tasks: extract_media.yml
+

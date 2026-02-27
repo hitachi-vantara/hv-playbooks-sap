@@ -1,0 +1,23 @@
+# HANA SAN multipath.conf (TEMPLATE) for Hitachi Storage
+devices {
+    device {
+        vendor                    "HITACHI"
+        product                   ".*"
+        user_friendly_names       "yes"
+        path_checker              "tur"
+        path_grouping_policy      "multibus"
+        path_selector             "queue-length 0"
+        uid_attribute             "ID_SERIAL"
+        failback                  "immediate"
+        rr_weight                 "uniform"
+        rr_min_io_rq              "1"
+        features                  "0"
+        no_path_retry             "5"
+    }
+}
+blacklist {
+    devnode                   "^(ram|raw|loop|fd|md|dm-|sr|scd|st)[0-9]*"
+    devnode                   "^hd[a-z]"
+    devnode                   "^dcssblk[0-9]*"
+}
+

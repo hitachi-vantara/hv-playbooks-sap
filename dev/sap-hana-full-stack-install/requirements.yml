@@ -1,0 +1,18 @@
+---
+collections:
+  # Contains sap_general_preconfigure, sap_hana_preconfigure, sap_hana_install
+  - name: community.sap_install
+    version: ">=1.3.0"
+  
+  # Contains the software_center_download module
+  - name: community.sap_launchpad
+    version: ">=1.0.0"
+
+  # Contains highly reusable SAP low-level modules required by sap_install
+  - name: community.sap_libs
+    version: ">=1.0.0"
+
+  # Required for lvol, lvg (LVM filesystem creation in Playbook 02)
+  - name: community.general
+    version: ">=8.0.0"
+

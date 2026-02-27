@@ -1,0 +1,42 @@
+#Download SAP HANA Packages from SAP Software Center
+---
+- name: Ensure download destination directory exists
+  ansible.builtin.file:
+    path: "{{ hana_download_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Skip download if S-User credentials not provided
+  ansible.builtin.debug:
+    msg: "Skipping download - sap_suser_id or sap_suser_password not provided."
+  when: >
+    sap_suser_id | default('') | length == 0 or
+    sap_suser_password | default('') | length == 0
+
+
+- name: Download SAP HANA packages from Software Center using S-User Credentials
+  community.sap_launchpad.software_center_download:
+    suser_id: "{{ sap_suser_id }}"
+    suser_password: "{{ sap_suser_password }}"
+    search_query: "{{ item }}"
+    deduplicate: "last"
+    validate_checksum: true
+    dest: "{{ hana_download_dir }}"
+    search_alternatives: true
+  loop: "{{ hana_softwarecenter_search_list }}"
+  loop_control:
+    label: "{{ item }}"
+  register: download_task
+  retries: 3
+  delay: 10
+  until: download_task is not failed
+  no_log: true  # Hide S-User password from logs
+  when: >
+    sap_suser_id | default('') | length > 0 and
+    sap_suser_password | default('') | length > 0
+
+
+- name: Show SAP HANA download status
+  ansible.builtin.debug:
+    msg: "{{ download_task.msg }}"
+

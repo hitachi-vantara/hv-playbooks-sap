@@ -1,0 +1,16 @@
+---
+- name: 05 - SAP HANA Download and Extract media
+  hosts: hana_nodes
+  become: yes
+
+  vars_prompt:
+    - name: sap_suser_id
+      prompt: "Please enter S-User ID"
+      private: no
+    - name: sap_suser_password
+      prompt: "Please enter S-User Password"
+      private: yes
+
+  roles:
+    - sap_hana_download_media
+

@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Disable firewalld
+  ansible.builtin.include_tasks: disable-services.yml
+  vars:
+    line_item: firewalld

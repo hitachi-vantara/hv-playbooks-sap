@@ -1,0 +1,9 @@
+#main.yml
+# Python modules required for HANA Nodes
+hana_python_modules:
+  - wheel
+  - requests
+  - beautifulsoup4
+  - lxml
+  - urllib3
+  - setuptools

@@ -1,0 +1,57 @@
+---
+# main.yml
+- name: Main SAP HANA Software stack deployment pipeline
+  hosts: hana_nodes
+  become: yes
+
+  # Prompt once for the whole pipeline (if needed by Playbook 05)
+  vars_prompt:
+    - name: sap_suser_id
+      prompt: "Enter SAP S-User ID (Press Enter to skip if media already downloaded):"
+      private: no
+    - name: sap_suser_password
+      prompt: "Enter SAP S-User Password:"
+      private: yes
+
+  tasks:
+    - name: 01 - Prepare Python Environment on HANA Node
+      ansible.builtin.import_role:
+        name: sap_hana_python_config
+      tags:
+        - prepare_python
+        - python_config
+
+    - name: 02 - Configure HANA TDI SAN Filesystem
+      ansible.builtin.import_role:
+        name: sap_hana_filesystem_config
+      tags:
+        - hana_fs
+        - storage_fs
+
+    - name: 03 - SAP General OS Preconfiguration
+      ansible.builtin.import_role:
+        name: sap_general_preconfigure
+      tags:
+        - os_preconfig
+        - sap_general
+
+    - name: 04 - SAP HANA Specific OS Preconfiguration
+      ansible.builtin.import_role:
+        name: sap_hana_preconfigure
+      tags:
+        - hana_preconfig
+        - sap_hana_pre
+
+    - name: 05 - Download SAP HANA Media
+      ansible.builtin.import_role:
+        name: sap_hana_download_media
+      tags:
+        - download_media
+        - hana_download
+
+    - name: 06 - Install SAP HANA Database
+      ansible.builtin.import_role:
+        name: sap_hana_install
+      tags:
+        - hana_install
+        - new_install

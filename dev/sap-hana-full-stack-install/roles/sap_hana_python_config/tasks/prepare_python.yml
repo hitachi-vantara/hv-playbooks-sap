@@ -1,0 +1,40 @@
+# Install required Python package on HANA Nodes
+
+- name: Install Python 3.11 on RHEL
+  ansible.builtin.package:
+    name:
+      - python3.11
+      - python3.11-pip
+      - python3.11-setuptools
+      - python3.11-wheel
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install Python 3.11 on SLES15
+  ansible.builtin.package:
+    name:
+      - python311
+      - python311-pip
+      - python311-setuptools
+    state: present
+  when:
+    - ansible_os_family == "Suse"
+    - ansible_distribution_major_version == "15"
+
+- name: Install pip modules for python3.11
+  ansible.builtin.pip:
+    name: "{{ hana_python_modules }}"
+    executable: pip3.11
+    state: present
+  register: hana_pip_result
+  failed_when: false
+
+- name: Verify python3.11 version
+  ansible.builtin.command: python3.11 --version
+  register: hana_pyver
+  ignore_errors: yes
+
+- name: Show Python version
+  ansible.builtin.debug:
+    msg: "Python installed: {{ hana_pyver.stdout | default('Not found') }}"
+

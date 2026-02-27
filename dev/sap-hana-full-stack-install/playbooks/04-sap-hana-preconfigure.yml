@@ -1,0 +1,7 @@
+---
+- name: 04 - SAP HANA Preconfigure
+  hosts: hana_nodes
+  become: yes
+  roles:
+    - sap_hana_preconfigure
+

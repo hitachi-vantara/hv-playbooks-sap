@@ -1,0 +1,7 @@
+---
+# Tasks to prepare python modules for HANA
+
+- name: Prepare Python environment for SAP HANA node
+  import_tasks: prepare_python.yml
+
+

@@ -1,0 +1,14 @@
+- name: Gather minimal facts for OS detection
+  ansible.builtin.setup:
+    gather_subset:
+      - min
+
+- name: Fail if OS not supported
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] in ['RedHat', 'Suse']
+    fail_msg: "Only RedHat and Suse are supported by hana_storage_autoconfig role."
+
+- name: Load OS-specific vars
+  ansible.builtin.include_vars: "{{ ansible_facts['os_family'] | lower }}.yml"
+
