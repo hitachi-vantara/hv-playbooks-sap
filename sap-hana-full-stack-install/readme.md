@@ -1,6 +1,4 @@
 ***
-
-```markdown
 # Hitachi Vantara - SAP HANA Full Stack Deployment Playbooks
 
 This repository contains a comprehensive, automated Ansible pipeline for deploying SAP HANA in Tailored Datacenter Integration (TDI) on Hitachi Advanced Server environments. It is specifically designed to work seamlessly with Hitachi VSP and VSP One Block storage systems. 
@@ -15,8 +13,6 @@ The automation handles everything from OS tuning and dynamic SAN LUN detection t
 - [Configuration Guide](#-configuration-guide)
 - [Execution Guide](#-execution-guide)
 
----
-
 ## Overview
 
 Manual SAP HANA deployments involve complex storage formatting, strict OS kernel parameter tuning, and tedious SAP package management. This playbook pipeline fully automates these steps, ensuring consistent, repeatable, and SAP-certified installations. 
@@ -27,7 +23,6 @@ Key capabilities include:
 * **Secure API Integration:** Prompts for SAP S-User credentials securely to download `SAPCAR` and HANA `SAR` media directly from the SAP Software Center.
 * **Unattended Installation:** Executes `hdblcm` silently with secure vault integration for master passwords.
 
----
 
 ## Architecture & Pipeline
 
@@ -42,7 +37,6 @@ The execution is orchestrated by `main_pipeline.yml`, utilizing the `import_role
 | `05` / `download_media` | `sap_hana_download_media` | Securely authenticates and downloads required SAP software packages to `/hana/shared/software`. |
 | `06` / `hana_install` | `sap_hana_install` | Extracts SAR files via SAPCAR and executes the SAP HANA Database lifecycle manager (`hdblcm`). |
 
----
 
 ## Directory Structure
 
@@ -68,9 +62,7 @@ sap-hana-full-stack-install/
     ├── sap_hana_download_media           # SAP Launchpad integration
     ├── sap_hana_install                  # HANA hdblcm execution
     └── sap_hana_python_config            # Python dependencies
-```
 
----
 
 ## Prerequisites & Dependencies
 
@@ -194,3 +186,4 @@ ansible-playbook -i inventory/hana_nodes.ini playbooks/02-sap_hana_filesystem_co
 **Maintainer:** Hitachi Vantara SAP Solution Engineering Team  
 **License:** Apache 2.0
 ```
+
