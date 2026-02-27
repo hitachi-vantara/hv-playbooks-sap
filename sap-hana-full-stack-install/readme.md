@@ -62,7 +62,7 @@ sap-hana-full-stack-install/
     ├── sap_hana_download_media           # SAP Launchpad integration
     ├── sap_hana_install                  # HANA hdblcm execution
     └── sap_hana_python_config            # Python dependencies
-
+```
 
 ## Prerequisites & Dependencies
 
@@ -186,4 +186,5 @@ ansible-playbook -i inventory/hana_nodes.ini playbooks/02-sap_hana_filesystem_co
 **Maintainer:** Hitachi Vantara SAP Solution Engineering Team  
 **License:** Apache 2.0
 ```
+
 
