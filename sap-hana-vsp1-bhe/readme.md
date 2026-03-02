@@ -122,5 +122,6 @@ ansible-playbook main.yml --ask-vault-pass
 ---
 **Maintainer:** Hitachi Vantara SAP Solution Engineering Team  
 **License:** Apache 2.0
+
 **Reference:** https://galaxy.ansible.com/ui/repo/published/hitachivantara/vspone_block/docs/
 ```
