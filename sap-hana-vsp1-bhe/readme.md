@@ -1,6 +1,4 @@
 ***
-
-```markdown
 # Hitachi Vantara VSP One BHE Block Storage - Storage Provisioning Playbooks for SAP HANA
 
 This repository contains an automated Ansible pipeline for provisioning Hitachi VSP One BHE Block Storage for a SAP HANA Environment. The pipeline automates the end-to-end creation of HDP Storage Pool, Storage Ports, Server Profiles (Host Groups), and the provisioning and mapping of Data Reduction (DRS) Volumes for SAP HANA Tailored Datacenter Integration (TDI) layouts.
