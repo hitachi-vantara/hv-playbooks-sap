@@ -1,0 +1,51 @@
+---
+###################################################################################
+# Hitachi Storage Provisioning Playbooks for SAP HANA
+# Author: Hitachi Vantara SAP Engineering Team
+# Version: v1.0
+# Date: Feb 2026
+# Description: Automated storage provisioning and management for SAP HANA Scale-Out 
+# Servers using HDP Storage pool method for VSP One BHE (B85)  Block Storage
+# Tested on: Hitachi Virtual Storage Platform One Block Storage Modules for 
+# Red Hat Ansible 4.5.1
+#
+# NOTE: PARITY GROUP creation is not supported by Ansible modules for VSP One BHE Block storage.
+####################################################################################
+
+##########################################################################################
+##  main.yml to create & configure VSP One BHE Block storage for SAP HANA TDI Severs
+##########################################################################################
+- name: Configure VSP One BHE Block Storage for multiple SAP HANA Servers
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Starting SAP HANA Storage Configuration Pipeline
+      ansible.builtin.debug:
+        msg:
+           - "========================================================================="
+           - "  VSP One BHE Configuration for SAP HANA Scale-out Environment"
+           - "========================================================================="
+           - "Prerequisites Check:"
+           - "  ✓ Make sure Parity Groups created for HDP Storage Pool and correct parity group id defines as variable"
+           - "  ✓ Verify nodes_info.csv contains: hostnames, WWNs, storage ports"
+           - "  ✓ Confirm vault file has: storage address and credentials"
+           - "Starting automated provisioning workflow..."
+
+
+- name: Check and validate VSP One BHE Storage System, if Storage not supported then pipe-line will exit
+  import_playbook: 0_storagesystem_validate.yml
+
+- name: Load SAP HANA Nodes details from CSV
+  import_playbook: 1_load_nodes.yml
+
+- name: Create HDP Storage Pools for Data and Log Volumes
+  import_playbook: 2_storagepool_create.yml
+    
+- name: VSP One Storage Port Create
+  import_playbook: 3_vsp1_storage_port_create.yml
+  
+- name: VSP One Server Profile and Port mapping
+  import_playbook: 4_vsp1_server_profile_create.yml
+
+- name: DRS Volumes creation for HANA TDI and map to servers
+  import_playbook: 5_vsp1_volume_creation_mapping.yml
