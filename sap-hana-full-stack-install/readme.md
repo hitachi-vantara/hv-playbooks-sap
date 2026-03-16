@@ -1,7 +1,7 @@
 ***
 # Hitachi Vantara - SAP HANA Full Stack Deployment Playbooks
 
-This repository contains a comprehensive, automated Ansible pipeline for deploying SAP HANA in Tailored Datacenter Integration (TDI) on Hitachi Advanced Server environments. It is specifically designed to work seamlessly with Hitachi VSP and VSP One Block storage systems. This ansible pipeline leverage some SAP provided playbooks (https://github.com/sap-linuxlab/community.sap_install) with customization for Hitachi Vantara SAP Solutions.
+This repository contains a comprehensive, automated Ansible (4.5.1) pipeline for deploying SAP HANA in Tailored Datacenter Integration (TDI) on Hitachi Advanced Server environments. It is specifically designed to work seamlessly with Hitachi VSP and VSP One Block storage systems. This ansible pipeline leverage some SAP provided playbooks (https://github.com/sap-linuxlab/community.sap_install) with customization for Hitachi Vantara SAP Solutions.
 
 The automation handles everything from OS tuning and dynamic SAN LUN detection and HANA filesystem creation to SAP software downloads and unattended HANA database installations.
 
@@ -184,5 +184,6 @@ ansible-playbook -i inventory/hana_nodes.ini playbooks/02-sap_hana_filesystem_co
 
 ---
 **Maintainer:** Hitachi Vantara SAP Solution Engineering Team  
-**License:** Apache 2.0
+**License:** GPL-3.0
+**Hitachi Vantara Ansible Module:** 4.5.1
 ```
