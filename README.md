@@ -164,18 +164,20 @@ Each pipeline and task folder contains specific configuration files that must be
     Option: -J or --ask-vault-password or --ask-vault-pass ask for vault password, use this only if vault file is encrypted.
 
 
+
 ## 6. Additional SAP HANA Playbook Sets
 
 This repository also includes two new complete solution bundles:
 
 **Directory:** `sap-hana-vsp1-bhe`
-**Version:** v1.1  
+**Version:** v1.0
 **Description:**  End‑to‑end **Hitachi VSP One BHE Block storage** provisioning pipeline for SAP HANA TDI scale‑out environments, including storage system validation, storage pool creation, server profile (host group) configuration, and HANA volume creation and mapping.
 
 
 **Directory:** `sap-hana-full-stack-install`
-**Version:** v1.1  
+**Version:** v1.0
 **Description:**  **SAP HANA Full stack installation** pipeline covering Python preparation, HANA filesystem auto‑configuration on SAN LUNs, SAP OS and HANA pre‑configuration, optional SAP media download from Software Center, and unattended SAP HANA database installation.
+
 
 ###################################################################################################
 
