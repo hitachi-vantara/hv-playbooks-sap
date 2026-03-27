@@ -1,0 +1,54 @@
+- name: Create filesystem on HANA data LV
+  ansible.builtin.filesystem:
+    fstype: "{{ hana_fs_type }}"
+    dev: "/dev/{{ hana_vg_data }}/{{ hana_lv_data }}"
+    opts: "{{ hana_mkfs_opts }}"
+
+- name: Create filesystem on HANA log LV
+  ansible.builtin.filesystem:
+    fstype: "{{ hana_fs_type }}"
+    dev: "/dev/{{ hana_vg_log }}/{{ hana_lv_log }}"
+    opts: "{{ hana_mkfs_opts }}"
+
+- name: Create filesystem on HANA shared LV
+  ansible.builtin.filesystem:
+    fstype: "{{ hana_fs_type }}"
+    dev: "/dev/{{ hana_vg_shared }}/{{ hana_lv_shared }}"
+    opts: "{{ hana_mkfs_opts }}"
+
+- name: Ensure HANA mount points exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - "{{ hana_data_mount }}"
+    - "{{ hana_log_mount }}"
+    - "{{ hana_shared_mount }}"
+
+- name: Mount HANA data and persist in fstab
+  ansible.builtin.mount:
+    path: "{{ hana_data_mount }}"
+    src: "/dev/{{ hana_vg_data }}/{{ hana_lv_data }}"
+    fstype: "{{ hana_fs_type }}"
+    opts: "{{ hana_data_mount_opts }}"
+    state: mounted
+
+- name: Mount HANA log and persist in fstab
+  ansible.builtin.mount:
+    path: "{{ hana_log_mount }}"
+    src: "/dev/{{ hana_vg_log }}/{{ hana_lv_log }}"
+    fstype: "{{ hana_fs_type }}"
+    opts: "{{ hana_log_mount_opts }}"
+    state: mounted
+
+- name: Mount HANA shared and persist in fstab
+  ansible.builtin.mount:
+    path: "{{ hana_shared_mount }}"
+    src: "/dev/{{ hana_vg_shared }}/{{ hana_lv_shared }}"
+    fstype: "{{ hana_fs_type }}"
+    opts: "{{ hana_shared_mount_opts }}"
+    state: mounted
+

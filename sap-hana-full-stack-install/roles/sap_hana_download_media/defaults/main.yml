@@ -1,0 +1,10 @@
+#main.yml
+
+# Generic
+ansible_python_interpreter: /usr/bin/python3.11
+
+# SAP Launchpad (optional - override with vars_prompt)
+#sap_suser_id: "{{ sap_suser_id | default('') }}"
+#sap_suser_password: "{{ sap_suser_password | default('') }}"
+sap_suser_id: ""
+sap_suser_password: ""

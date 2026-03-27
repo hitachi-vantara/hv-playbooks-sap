@@ -1,0 +1,23 @@
+# SAP HANA deployment global variables
+hana_download_dir: "/hana/shared/software/downloads"
+hana_extract_base_dir: "/hana/shared/software/downloads/extracted"
+
+# Update this list to download required SAP HANA packages
+hana_softwarecenter_search_list:
+  - 'SAPCAR_1400-70007716.EXE'
+  - 'IMDB_SERVER20_088_0-80002031.SAR'
+  - 'IMDB_CLIENT20_000_0-80002082.SAR'
+    #- 'SAPHOSTAGENT69_69-80004822.SAR'
+
+  ###NOTE: SAPCAR pacakge is mandatory download as this tool will use to extract SAR files ###
+
+##HANA Filesystem size, modify the size as per your assigned LUN size
+hana_shared_lun_size_gb: 1200 ## single lun (±100 GB)
+hana_data_lun_size_gb: 1700  ## per lun size, total 4 luns (±100 GB)
+hana_log_lun_size_gb: 200    ## per lun size, total 4 luns ((±50) GB)
+
+
+#New HANA-TDI Scale-UP install variables
+sap_hana_install_sid: "HIT"
+sap_hana_install_number: "00"
+sap_hana_install_master_password: "{{ vault_hana_sidadm_password }}"

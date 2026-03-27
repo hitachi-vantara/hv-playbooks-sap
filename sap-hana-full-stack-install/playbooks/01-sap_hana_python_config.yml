@@ -1,0 +1,7 @@
+---
+- name: 01 - Prepare Python environment
+  hosts: hana_nodes
+  become: yes
+  roles:
+    - sap_hana_python_config
+

@@ -1,0 +1,15 @@
+- name: Deploy multipath configuration template
+  ansible.builtin.template:
+    src: multipath.conf.j2
+    dest: /etc/multipath.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart multipathd
+
+- name: Ensure multipathd is enabled and running
+  ansible.builtin.service:
+    name: multipathd
+    state: started
+    enabled: yes
+

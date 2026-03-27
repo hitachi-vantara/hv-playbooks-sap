@@ -1,0 +1,57 @@
+---
+# Expected SAN layout (multipath LUNs)
+hana_shared_lun_count: 1
+hana_data_lun_count: 4
+hana_log_lun_count: 4
+
+# Auto-detection by size (GiB as reported by lsblk)
+#hana_shared_lun_size_gb: 512
+#hana_data_lun_size_gb: 512
+#hana_log_lun_size_gb: 256
+##Dont modify these
+
+# SAP HANA Default filesystems
+hana_shared_fs: "/hana/shared"
+hana_data_fs: "/hana/data"
+hana_log_fs: "/hana/log"
+
+# plus-minus addition size define in variable to match exact LUN
+hana_shared_size_tolerance: 50
+hana_data_size_tolerance: 100
+hana_log_size_tolerance: 50
+
+
+# Device name filtering / exclusions
+# hana_device_filter is overridden by OS vars; keep here as fallback.
+hana_device_filter: '^mpath.*|^dm-[0-9]+$'
+
+# Exclude local disks (adjust to your server boot devices)
+hana_exclude_devices:
+  - '^sd[a-b]'
+  - '^nvme0n1'
+
+# LVM layout
+hana_vg_data: 'vg_data'
+hana_vg_log: 'vg_log'
+hana_vg_shared: 'vg_shared'
+
+hana_lv_data: 'lv_data'
+hana_lv_log: 'lv_log'
+hana_lv_shared: 'lv_shared'
+
+# FS + mkfs options
+hana_fs_type: 'xfs'
+hana_mkfs_opts: '-f'
+
+# LVM striping
+hana_lvm_stripe_size: '256K'
+
+# Mount points and mount options
+hana_data_mount: '/hana/data'
+hana_log_mount: '/hana/log'
+hana_shared_mount: '/hana/shared'
+
+hana_data_mount_opts: 'defaults,noatime,inode64'
+hana_log_mount_opts: 'defaults,noatime,inode64'
+hana_shared_mount_opts: 'defaults,noatime,inode64'
+

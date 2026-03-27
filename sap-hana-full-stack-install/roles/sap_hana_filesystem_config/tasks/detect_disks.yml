@@ -1,0 +1,87 @@
+---
+- name: Rescan multipath devices to ensure paths are active
+  ansible.builtin.command: multipath -r
+  changed_when: false
+
+- name: Get all block devices in JSON format
+  ansible.builtin.command: lsblk -b -J
+  register: lsblk_raw_json
+  changed_when: false
+
+- name: Parse lsblk JSON into a native Ansible dictionary
+  ansible.builtin.set_fact:
+    lsblk_data: "{{ (lsblk_raw_json.stdout | from_json).blockdevices }}"
+
+- name: Recursively extract all devices (flattening the JSON tree)
+  ansible.builtin.set_fact:
+    all_devices_flat: >-
+      {{
+        all_devices_flat | default([]) +
+        [item] +
+        (item.children | default([])) +
+        (item.children | default([]) | map(attribute='children') | select('defined') | flatten)
+      }}
+  loop: "{{ lsblk_data }}"
+
+- name: Filter for RAW unpartitioned Multipath Base Disks ONLY
+  # Selects only items where type is exactly 'mpath' (ignores 'part' or 'disk')
+  # AND ensures the mpath device has NO children (no partitions)
+  ansible.builtin.set_fact:
+    mpath_gib: >-
+      {{
+        mpath_gib | default({}) | combine({
+          item.name: (item.size | int // 1073741824)
+        })
+      }}
+  loop: "{{ all_devices_flat | unique(attribute='name') }}"
+  when: 
+    - "item.type == 'mpath'"
+    - "'children' not in item"
+
+- name: Fail if no valid raw multipath devices are found
+  ansible.builtin.fail:
+    msg: "No empty/raw multipath devices found! Ensure storage is attached and has no existing partitions."
+  when: mpath_gib is not defined or mpath_gib.keys() | length == 0
+
+- name: Sort all raw multipath disks from smallest to largest size
+  ansible.builtin.set_fact:
+    sorted_disks_by_size: >-
+      {{
+        mpath_gib | dict2items | sort(attribute='value') | map(attribute='key') | list
+      }}
+
+- name: Dynamically Classify Log Devices (Smallest raw disks)
+  ansible.builtin.set_fact:
+    hana_log_mpath: "{{ sorted_disks_by_size[: (hana_log_lun_count | int)] }}"
+
+- name: Dynamically Classify Data Devices (Largest raw disks)
+  ansible.builtin.set_fact:
+    hana_data_mpath: "{{ sorted_disks_by_size[-(hana_data_lun_count | int):] }}"
+
+- name: Dynamically Classify Shared Devices (Remaining medium raw disks)
+  ansible.builtin.set_fact:
+    hana_shared_mpath: "{{ sorted_disks_by_size | reject('in', hana_log_mpath) | reject('in', hana_data_mpath) | list }}"
+
+- name: Format full device paths for LVM (/dev/mapper/...)
+  ansible.builtin.set_fact:
+    hana_shared_devices: "{{ hana_shared_mpath | map('regex_replace', '^(.*)$', '/dev/mapper/\\1') | list }}"
+    hana_data_devices: "{{ hana_data_mpath | map('regex_replace', '^(.*)$', '/dev/mapper/\\1') | list }}"
+    hana_log_devices: "{{ hana_log_mpath | map('regex_replace', '^(.*)$', '/dev/mapper/\\1') | list }}"
+
+- name: Debug Output for Detected Multipath LVM Devices
+  ansible.builtin.debug:
+    msg: |
+      Found {{ sorted_disks_by_size | length }} total Raw, Unpartitioned Multipath Base Devices.
+      SHARED (Medium): {{ hana_shared_devices | length }}/{{ hana_shared_lun_count }} = {{ hana_shared_devices }}
+      DATA   (Largest): {{ hana_data_devices | length }}/{{ hana_data_lun_count }} = {{ hana_data_devices }}
+      LOG    (Smallest): {{ hana_log_devices | length }}/{{ hana_log_lun_count }} = {{ hana_log_devices }}
+
+- name: Assert exact counts for HANA Multipath SAN layout
+  ansible.builtin.assert:
+    that:
+      - hana_shared_mpath | length == (hana_shared_lun_count | int)
+      - hana_data_mpath | length == (hana_data_lun_count | int)
+      - hana_log_mpath | length == (hana_log_lun_count | int)
+    success_msg: " HANA Multipath layout successfully mapped dynamically (OS boot disks and partitions safely ignored)!"
+    fail_msg: " LUN count mismatch! Ensure all provisioned SAN disks are raw (no existing partitions)."
+

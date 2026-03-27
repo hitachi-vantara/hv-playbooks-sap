@@ -1,0 +1,31 @@
+- name: Load SAP HANA Nodes info from CSV
+  hosts: localhost
+  gather_facts: no
+  vars:
+    csv_file: "nodes_info.csv"
+
+  tasks:
+    - name: Load CSV content
+      set_fact:
+        raw_csv: "{{ lookup('ansible.builtin.file', csv_file).splitlines() }}"
+
+    - name: Convert CSV lines into structured list (skip header)
+      set_fact:
+        sap_hana_nodes: "{{ sap_hana_nodes | default([]) + [ {
+            'hostname': parts[0],
+            'port1': parts[1],
+            'wwn1': parts[2],
+            'port2': parts[3],
+            'wwn2': parts[4]
+          } ] }}"
+      loop: "{{ raw_csv[1:] }}"
+      loop_control:
+        loop_var: raw
+      vars:
+        parts: "{{ raw.split(',') }}"
+
+    - name: Persist sap hana nodes info fact for later plays
+      set_fact:
+        sap_hana_nodes: "{{ sap_hana_nodes }}"
+        ansible_facts:
+          cacheable: true

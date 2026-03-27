@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Gather package facts again after the installation phase
+  ansible.builtin.package_facts:
+  tags:
+    - always
+
+- name: Configure - List required SAP Notes
+  ansible.builtin.debug:
+    var: __sap_general_preconfigure_sapnotes_versions | difference([''])
+  tags:
+    - always
+
+- name: Configure - Set directory variables for setting SELinux file contexts
+  ansible.builtin.set_fact:
+    sap_general_preconfigure_fact_targets_setypes: "{{ sap_general_preconfigure_fact_targets_setypes | d([]) +
+      [__sap_general_preconfigure_tmp_dict_target_setype] }}"
+  loop: "{{ sap_general_preconfigure_sap_directories }}"
+  loop_control:
+    loop_var: line_item
+  vars:
+    __sap_general_preconfigure_tmp_dict_target_setype:
+      target: "{{ line_item }}(/.*)?"
+      setype: 'usr_t'
+  when: sap_general_preconfigure_modify_selinux_labels
+  tags:
+    - sap_general_preconfigure_3108316_02
+    - sap_general_preconfigure_2772999_02
+    - sap_general_preconfigure_selinux
+
+- name: Configure - Display directory variable
+  ansible.builtin.debug:
+    var: sap_general_preconfigure_fact_targets_setypes
+  when: sap_general_preconfigure_modify_selinux_labels
+  tags:
+    - sap_general_preconfigure_3108316_02
+    - sap_general_preconfigure_2772999_02
+    - sap_general_preconfigure_selinux
+
+- name: Configure - Create directories
+  ansible.builtin.file:
+    path: "{{ line_item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  loop: "{{ sap_general_preconfigure_sap_directories }}"
+  loop_control:
+    loop_var: line_item
+  when: sap_general_preconfigure_create_directories or sap_general_preconfigure_modify_selinux_labels
+  tags:
+    - sap_general_preconfigure_create_directories
+    - sap_general_preconfigure_3108316_02
+    - sap_general_preconfigure_2772999_02
+    - sap_general_preconfigure_selinux
+
+- name: Configure - Include configuration actions for required sapnotes
+  ansible.builtin.include_tasks:
+    file: "sapnote/{{ sap_note_line_item.number }}.yml"
+  with_items: "{{ __sap_general_preconfigure_sapnotes_versions | difference(['']) }}"
+  loop_control:
+    loop_var: sap_note_line_item
+  tags:
+    - always

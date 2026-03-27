@@ -1,0 +1,5 @@
+# Supported OS families
+hana_supported_os_families:
+  - RedHat
+  - Suse
+

@@ -1,0 +1,58 @@
+---
+#Extract downloaded packages
+
+####################################################################
+# SAPCAR setup
+####################################################################
+
+- name: Find downloaded SAPCAR executable
+  ansible.builtin.find:
+    paths: "{{ hana_download_dir }}"
+    patterns: "*SAPCAR*.EXE"
+  register: hana_sapcar_find
+
+- name: Fail if SAPCAR not found
+  ansible.builtin.fail:
+    msg: "SAPCAR executable not found in {{ hana_download_dir }}."
+  when: hana_sapcar_find.matched == 0
+
+- name: Set SAPCAR path
+  ansible.builtin.set_fact:
+    hana_sapcar_exe: "{{ hana_sapcar_find.files[0].path }}"
+
+- name: Make SAPCAR executable
+  ansible.builtin.file:
+    path: "{{ hana_sapcar_exe }}"
+    mode: '0755'
+
+####################################################################
+# Extract SAR files
+####################################################################
+
+- name: Find all SAR files in downloaded folder
+  ansible.builtin.find:
+    paths: "{{ hana_download_dir }}"
+    patterns: "*.SAR"
+  register: hana_sar_files
+
+- name: Create directory for each SAR file
+  ansible.builtin.file:
+    path: "{{ hana_extract_base_dir }}/{{ item.path | basename | regex_replace('.SAR$', '') }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ hana_sar_files.files }}"
+  loop_control:
+    label: "Creating dir for {{ item.path | basename }}"
+
+- name: Extract SAR files with SAPCAR
+  ansible.builtin.command:
+    cmd: >
+      {{ hana_sapcar_exe }} -xvf {{ item.path }}
+      -manifest SIGNATURE.SMF
+      -R {{ hana_extract_base_dir }}/{{ item.path | basename | regex_replace('.SAR$', '') }}
+  loop: "{{ hana_sar_files.files }}"
+  loop_control:
+    label: "Extracting {{ item.path | basename }}"
+  register: hana_sar_extract_out
+  changed_when: "'SAPCAR: processing archive' in hana_sar_extract_out.stdout"
+

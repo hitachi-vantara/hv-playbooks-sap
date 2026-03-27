@@ -1,0 +1,53 @@
+####################################################################
+# Variables for states : Common for all playbooks (Do not modify)
+####################################################################
+state_present : present
+state_sync : sync
+#
+####################################################################
+# Variables for substates, state feild inside spec (Do not modify)
+####################################################################
+substate_present_ldev : present_ldev
+substate_set_host_mode_and_hmo : set_host_mode_and_hmo
+substate_add_wwn : add_wwn
+substate_attach_ldev : attach_ldev
+#
+#
+####################################################################
+# Change storage port speed (This is optional and default set to auto)
+# Note: Update the correct Storage Port where your host is connected.
+####################################################################
+#
+portspeed : "32" ## If you want to set specific speed then choices: [0, 1, 4, 8, 10, 16, 25, 32, 64, 100]
+port_security_status : true  ##For Direct connection this should be false else use true
+fabric_connection : true ## make it true if using Fibre Switch
+####################################################################
+#
+####################################################################
+# Update hostgroup modes (Do not modify if not sure)
+####################################################################
+#
+hostgroup_host_mode : "LINUX"
+hostgroup_host_mode_options : "[ 68 ]"
+#####################################################################
+#
+#####################################################################
+#
+####################################################################
+# Create HDP Storage Pool with 8 pool Volumes (PVOLs)
+####################################################################
+next_parity_group_id: 1-1   ##Provide correct PG ID which should create manually
+storagepool_name_1 : "ANS_HA_ES_POOL8D"
+storagepool_size : "100GB"    ##per PVOL size
+pvol_name_1 : "ANS_HA_ES_PVOL"
+####################################################################
+# Create VVOL ldevs (OS, SH, 4xLog & 4xData) in HDP Pool
+####################################################################
+#hdp_pool_id : 1
+os_vol_size : 100GB
+shared_vol_size : 1024GB
+log_vol_size : 128GB         ####per VVOL size
+data_vol_size : 256GB        ####per VVOL size
+####################################################################
+#
+

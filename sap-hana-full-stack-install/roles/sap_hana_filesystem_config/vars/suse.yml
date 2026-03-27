@@ -1,0 +1,3 @@
+hana_device_filter: '^mpath.*|^dm-[0-9]+$'
+hana_fs_type: 'xfs'
+hana_mkfs_opts: '-f'
