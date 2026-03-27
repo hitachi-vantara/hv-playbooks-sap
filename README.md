@@ -179,11 +179,11 @@ This repository also includes two new complete solution bundles:
 **Description:**  **SAP HANA Full stack installation** pipeline covering Python preparation, HANA filesystem auto‑configuration on SAN LUNs, SAP OS and HANA pre‑configuration, optional SAP media download from Software Center, and unattended SAP HANA database installation.
 
 
-##################################################################################################
+##################################################################################################   
 **Maintainer:** Hitachi Vantara SAP Solution Engineering Team  
 **License:** GPL-3.0
 
-###################################################################################################
+###################################################################################################   
 
 **DISCLAIMER: ** _All materials provided in this repository, including but not limited to Ansible Playbooks and Terraform Configurations, are made available as a courtesy. These materials are intended solely as examples, which may be utilized in whole or in part. Neither the contributors nor the users of this platform assert or are granted any ownership rights over the content shared herein. It is the sole responsibility of the user to evaluate the appropriateness and applicability of the materials for their specific use case.
 
