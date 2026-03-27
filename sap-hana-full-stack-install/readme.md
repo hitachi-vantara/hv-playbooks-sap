@@ -184,6 +184,6 @@ ansible-playbook -i inventory/hana_nodes.ini playbooks/02-sap_hana_filesystem_co
 
 ---
 **Maintainer:** Hitachi Vantara SAP Solution Engineering Team  
-**License:** GPL-3.0
+**License:** GPL-3.0  
 **Hitachi Vantara Ansible Module:** 4.5.1
 ```
