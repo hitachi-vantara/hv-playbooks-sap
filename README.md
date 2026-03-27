@@ -163,7 +163,7 @@ Each pipeline and task folder contains specific configuration files that must be
     ```
     Option: -J or --ask-vault-password or --ask-vault-pass ask for vault password, use this only if vault file is encrypted.
 
-
+---
 
 ## 6. Additional SAP HANA Playbook Sets
 
@@ -178,6 +178,10 @@ This repository also includes two new complete solution bundles:
 **Version:** v1.0
 **Description:**  **SAP HANA Full stack installation** pipeline covering Python preparation, HANA filesystem auto‑configuration on SAN LUNs, SAP OS and HANA pre‑configuration, optional SAP media download from Software Center, and unattended SAP HANA database installation.
 
+
+##################################################################################################
+**Maintainer:** Hitachi Vantara SAP Solution Engineering Team
+**License:** GPL-3.0
 
 ###################################################################################################
 
