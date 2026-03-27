@@ -129,7 +129,7 @@ This folder contains standalone playbooks for performing specific, granular task
 
 ---
 
-## Configuration Files
+## 3. Configuration Files
 
 Each pipeline and task folder contains specific configuration files that must be updated before execution:
 
@@ -144,7 +144,7 @@ Each pipeline and task folder contains specific configuration files that must be
     *   Variable files within the `individual_playbooks_for_tasks` directory used to define targets and parameters for modify, delete, or fact-gathering operations.
 
 
-## Prerequisites
+## 4. Prerequisites
 *   Red Hat Ansible Core - 2.16, 2.17, 2.18
 *   Python - 3.9 or higher
 *   Hitachi Virtual Storage Platform One Block Storage Modules for Red Hat Ansible 4.3 or later
@@ -152,7 +152,7 @@ Each pipeline and task folder contains specific configuration files that must be
 *   Valid credentials configured in `ansible_vault_storage_var.yml`
 
 
-## Usage
+## 5. Usage
 1.  Update the relevant `.yml` and `.csv` configuration files with your specific environment details.
 2.  Run the desired playbook using `ansible-playbook`, providing the vault password if necessary:
     ```
@@ -162,6 +162,20 @@ Each pipeline and task folder contains specific configuration files that must be
     ansible-playbook individual_playbooks_for_tasks/modify/modify_ldev_resize.yml --ask-vault-pass
     ```
     Option: -J or --ask-vault-password or --ask-vault-pass ask for vault password, use this only if vault file is encrypted.
+
+
+## 6. Additional SAP HANA Playbook Sets
+
+This repository also includes two new complete solution bundles:
+
+**Directory:** `sap-hana-vsp1-bhe`
+**Version:** v1.1  
+**Description:**  End‑to‑end **Hitachi VSP One BHE Block storage** provisioning pipeline for SAP HANA TDI scale‑out environments, including storage system validation, storage pool creation, server profile (host group) configuration, and HANA volume creation and mapping.
+
+
+**Directory:** `sap-hana-full-stack-install`
+**Version:** v1.1  
+**Description:**  **SAP HANA Full stack installation** pipeline covering Python preparation, HANA filesystem auto‑configuration on SAN LUNs, SAP OS and HANA pre‑configuration, optional SAP media download from Software Center, and unattended SAP HANA database installation.
 
 ###################################################################################################
 
